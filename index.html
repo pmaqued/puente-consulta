@@ -43,6 +43,7 @@
     </label>
 
     <div class="acciones">
+      <span id="estado-chip" class="chip-estado" hidden></span>
       <button id="nueva" class="boton secundario" title="Borra la conversación de la pantalla">
         <svg class="icono-svg" aria-hidden="true"><use href="#i-mas"/></svg>Nueva conversación</button>
       <button id="abrir-vista" class="boton icono redondo vista" popovertarget="menu-vista"
@@ -51,8 +52,10 @@
         <svg aria-hidden="true"><use href="#i-ajustes"/></svg></button>
     </div>
 
-    <div id="estado" class="estado" role="status"></div>
   </header>
+
+  <!-- Avisos: flotan bajo la barra y se van solos (los errores y los que tienen botón se quedan) -->
+  <div id="estado" class="estado" role="status" hidden></div>
 
   <!-- Menú «Aa»: voz del español y tamaño de la letra -->
   <div id="menu-vista" class="menu-vista" popover>
@@ -100,6 +103,16 @@
     </div>
   </template>
 
+  <!-- Al empezar una conversación nueva, el paciente señala su idioma -->
+  <section id="elegir-idioma" class="elegir-idioma" hidden>
+    <h2>¿Qué idioma habla?</h2>
+    <p class="elegir-sub">Toque su idioma · <span lang="ar" dir="rtl">اختر لغتك</span> · <span lang="zh">请选择您的语言</span> ·
+      <span lang="en">Choose your language</span></p>
+    <div id="rejilla-idiomas" class="rejilla-idiomas"></div>
+    <p class="elegir-pie"><button id="mas-idiomas" class="enlace" type="button">Más idiomas</button>
+      <button id="seguir-idioma" class="enlace" type="button"></button></p>
+  </section>
+
   <!-- La primera vez: qué se está preparando para este idioma -->
   <section id="preparacion" class="preparacion" hidden aria-live="polite">
     <h2 id="prep-titulo"></h2>
@@ -121,6 +134,7 @@
           <textarea id="texto-paciente" rows="2"></textarea>
           <button class="boton enviar" data-lado="paciente" id="enviar-paciente"></button>
         </div>
+        <div id="respuestas" class="respuestas" role="group" aria-label="Respuestas rápidas del paciente"></div>
       </div>
     </section>
 
@@ -148,16 +162,26 @@
       <span id="grande-etiqueta" class="grande-etiqueta"></span>
       <span id="grande-hora" class="grande-hora"></span>
     </div>
+    <div class="impreso-cabecera">
+      <img src="icono-512.png" alt="" width="40" height="40">
+      <span><b>Centro de salud</b><br>Información para el paciente</span>
+      <span id="impreso-fecha" class="impreso-fecha"></span>
+    </div>
     <div class="grande-centro">
       <p id="grande-traduccion" class="grande-traduccion"></p>
       <p id="grande-original" class="grande-original"></p>
       <p id="grande-fecha" class="grande-fecha"></p>
+      <div id="impreso-cita" class="impreso-cita">
+        <span>Día</span><b></b><span>Hora</span><b></b><span>Consulta</span><b></b>
+      </div>
     </div>
+    <p class="impreso-pie">Traducido automáticamente con Puente Consulta. Ante cualquier duda, pregunte en el mostrador.</p>
     <div class="grande-acciones">
       <button id="grande-leer" class="boton secundario grande-boton-accion">
         <svg class="icono-svg" aria-hidden="true"><use href="#i-altavoz"/></svg>Repetir en voz alta</button>
       <button id="imprimir" class="boton secundario grande-boton-accion" title="Imprimir este mensaje para dárselo al paciente">
         <svg class="icono-svg" aria-hidden="true"><use href="#i-imprimir"/></svg>Imprimir</button>
+      <label class="con-cita"><input type="checkbox" id="imprimir-cita"> con recuadro para la cita</label>
       <button id="grande-cerrar" class="boton grande-boton-accion">Cerrar</button>
     </div>
   </div>

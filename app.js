@@ -1,5 +1,6 @@
 // Puente Consulta: conversación cara a cara traducida (profesional en español ↔ paciente).
-import { IDIOMAS, PROFESIONAL, TEXTOS_BASE, FRASES_POR_DEFECTO, buscarIdioma } from "./idiomas.js";
+import { IDIOMAS, PROFESIONAL, TEXTOS_BASE, FRASES_POR_DEFECTO, buscarIdioma, RESPUESTAS, RESPUESTAS_ES, TEMAS, temaDe }
+  from "./idiomas.js";
 import { hayTraductor, esModoPrueba, disponibilidad, preparar, traducir } from "./traductor.js";
 import { hayDictado, modoDictado, instalarDictado, dictar, vozPara, generoDe, leer, callar } from "./voz.js";
 import { detectarIdioma } from "./detector.js";
@@ -23,6 +24,7 @@ const AJUSTES_POR_DEFECTO = {
   internetVoces: false,
   motorVoz: "puente", // "puente" (voces Piper en la página) | "navegador"
   avisoOculto: false,
+  imprimirCita: false, // al imprimir, añadir el recuadro Día / Hora / Consulta
   escala: 1, // tamaño de la letra de la conversación (0.8 – 1.6)
   frases: FRASES_POR_DEFECTO,
 };
@@ -107,11 +109,16 @@ function iniciar() {
   prepararTamano();
   prepararGenero();
   prepararPantallaGrande();
+  prepararSelectorIdioma();
+  // La pastilla de estado: si hay un aviso, al pulsarla se vuelve a ver.
+  $("#estado-chip").addEventListener("click", () => {
+    if ($("#estado-chip").dataset.tipo !== "ok" && $("#estado").childElementCount) $("#estado").hidden = false;
+  });
   pintarFrases();
   aplicarIdiomaPaciente();
   comprobarIdioma({ conClic: false });
 
-  if (esModoPrueba()) mostrarEstado("Modo de prueba: la «traducción» es falsa (solo para revisar la página).");
+  if (esModoPrueba()) mostrarEstado("Modo de prueba: la «traducción» es falsa (solo para revisar la página).", { listo: true });
 
   // Para que funcione sin conexión y se pueda instalar como app (Chrome/Edge: ⋮ › Instalar).
   if ("serviceWorker" in navigator) {
@@ -171,8 +178,18 @@ function prepararPantallaGrande() {
     e.stopPropagation(); // que el clic no cierre la pantalla grande
     if (mensajeGrande) leerYAvisar(mensajeGrande.traduccion, mensajeGrande.destino);
   });
+  // Los clics en los botones de abajo no cierran la pantalla grande (salvo «Cerrar»).
+  $(".grande-acciones").addEventListener("click", (e) => e.stopPropagation());
+  const conCita = $("#imprimir-cita");
+  conCita.checked = ajustes.imprimirCita;
+  conCita.addEventListener("change", () => {
+    ajustes.imprimirCita = conCita.checked;
+    guardarAjustes();
+  });
   $("#imprimir").addEventListener("click", (e) => {
     e.stopPropagation(); // que el clic no cierre la pantalla grande
+    capa.classList.toggle("con-cita", ajustes.imprimirCita);
+    $("#impreso-fecha").textContent = new Date().toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" });
     $("#grande-fecha").textContent = `Puente Consulta · ${new Date().toLocaleString("es-ES", {
       dateStyle: "long", timeStyle: "short" })}`;
     window.print();
@@ -248,6 +265,7 @@ function aplicarIdiomaPaciente() {
   bienvenida.textContent = textosPaciente.bienvenida;
   bienvenida.lang = paciente.traduccion;
   bienvenida.dir = paciente.dir;
+  pintarRespuestas();
   actualizarMicrofonos();
 }
 
@@ -366,7 +384,8 @@ async function descargar(id) {
   }
   listo = true;
   pasoPreparacion("traductor", { estado: "listo", detalle: "listo" });
-  mostrarEstado(esModoPrueba() ? "Modo de prueba: la «traducción» es falsa." : `Listo: ${paciente.nombre} ⇄ Español, en este ordenador.`);
+  mostrarEstado(esModoPrueba() ? "Modo de prueba: la «traducción» es falsa." : `Listo: ${paciente.nombre} ⇄ Español, en este ordenador.`,
+    { listo: true });
   actualizarBotones();
   traducirTextosInterfaz();
   prepararVocesPuente();
@@ -419,7 +438,7 @@ async function prepararVocesPuente() {
       }
       if (paciente.id === id) pasoPreparacion(claveVoz(v), { estado: "listo", detalle: "lista" });
       if (i === voces.length - 1 && pendientes.length && paciente.id === id) {
-        mostrarEstado(`Listo: ${paciente.nombre} ⇄ Español, con voces de Puente, en este ordenador.`);
+        mostrarEstado(`Listo: ${paciente.nombre} ⇄ Español, con voces de Puente, en este ordenador.`, { listo: true });
         terminarPreparacion();
       }
     }
@@ -511,10 +530,40 @@ function ocultarPreparacion() {
 
 // ---------- Estado de la barra ----------
 
-function mostrarEstado(texto, { error = false, progreso = null, boton = null } = {}) {
+let temporizadorAviso = null;
+
+/** Al ocultar un aviso, si la página está lista, la pastilla vuelve a «Listo». */
+function ocultarAviso() {
+  $("#estado").hidden = true;
+  if (listo) {
+    const chip = $("#estado-chip");
+    chip.dataset.tipo = "ok";
+    chip.textContent = esModoPrueba() ? "Modo de prueba" : "Listo · en este equipo";
+  }
+}
+
+/**
+ * Estado de la página. Si todo va bien ({ listo: true }), solo se ve una pastilla discreta en la barra.
+ * Lo demás sale como aviso flotante bajo la barra: se va solo, salvo errores, descargas o avisos con botón.
+ */
+function mostrarEstado(texto, { error = false, progreso = null, boton = null, listo = false } = {}) {
   reflejarEnPreparacion(texto, { error, boton });
+
+  const chip = $("#estado-chip");
+  chip.hidden = false;
+  chip.title = texto;
+  chip.dataset.tipo = listo ? "ok" : error ? "error" : "va";
+  chip.textContent = listo ? (esModoPrueba() ? "Modo de prueba" : "Listo · en este equipo")
+    : error ? "Hay un aviso" : progreso !== null ? "Descargando…" : "Un momento…";
+
   const estado = $("#estado");
+  clearTimeout(temporizadorAviso);
   estado.replaceChildren();
+  estado.classList.toggle("es-error", error);
+  if (listo) {
+    estado.hidden = true;
+    return;
+  }
   const span = document.createElement("span");
   span.textContent = texto;
   if (error) span.className = "error";
@@ -531,6 +580,18 @@ function mostrarEstado(texto, { error = false, progreso = null, boton = null } =
     b.textContent = boton[0];
     b.addEventListener("click", boton[1]);
     estado.append(b);
+  }
+  const cerrar = document.createElement("button");
+  cerrar.className = "cerrar-aviso";
+  cerrar.title = "Ocultar el aviso";
+  cerrar.setAttribute("aria-label", "Ocultar el aviso");
+  cerrar.innerHTML = `<svg aria-hidden="true"><use href="#i-cerrar"/></svg>`;
+  cerrar.addEventListener("click", ocultarAviso);
+  estado.append(cerrar);
+  // Si la tarjeta de preparación está a la vista, ya cuenta lo mismo: no se repite arriba.
+  estado.hidden = !$("#preparacion").hidden;
+  if (!error && progreso === null && !boton) {
+    temporizadorAviso = setTimeout(ocultarAviso, 7000);
   }
 }
 
@@ -567,6 +628,7 @@ async function enviar(lado, textoDado, dictado = false) {
 
 function crearBurbuja(lado, texto, origen) {
   $("#vacia")?.remove();
+  $("#elegir-idioma").hidden = true;
   if (!$("#preparacion").hidden) $("#conversacion").prepend($("#preparacion"));
   const art = document.createElement("article");
   art.className = `mensaje ${lado}`;
@@ -583,7 +645,7 @@ function crearBurbuja(lado, texto, origen) {
 
   const original = document.createElement("p");
   original.className = "original";
-  original.textContent = texto;
+  resaltarDatos(original, texto);
   original.lang = origen.traduccion;
   original.dir = origen.dir;
 
@@ -596,7 +658,7 @@ function crearBurbuja(lado, texto, origen) {
 function completarBurbuja(art, traduccion, destino, original, origen) {
   const p = document.createElement("p");
   p.className = "traduccion";
-  p.textContent = traduccion;
+  resaltarDatos(p, traduccion);
   p.lang = destino.traduccion;
   p.dir = destino.dir;
   p.title = "Ver en grande";
@@ -613,6 +675,25 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
   }
   art.append(acciones);
   art.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+/**
+ * Escribe el texto marcando números, fechas y horas (10:00, 25/11/2026, 612 345 678…): es lo que más importa
+ * en el mostrador y lo que más se equivoca al traducir. Así se comprueba de un vistazo en los dos idiomas.
+ */
+const DATOS = /[0-9٠-٩۰-۹]+(?:[.,:/\-][0-9٠-٩۰-۹]+)*(?: [0-9٠-٩۰-۹]{2,3}(?![0-9٠-٩۰-۹]))*/g;
+function resaltarDatos(el, texto) {
+  el.replaceChildren();
+  let desde = 0;
+  for (const m of texto.matchAll(DATOS)) {
+    if (m.index > desde) el.append(texto.slice(desde, m.index));
+    const marca = document.createElement("span");
+    marca.className = "dato";
+    marca.textContent = m[0];
+    el.append(marca);
+    desde = m.index + m[0].length;
+  }
+  if (desde < texto.length) el.append(texto.slice(desde));
 }
 
 /** ¿Hay alguna voz (de Puente o del navegador) para leer este idioma? */
@@ -641,6 +722,7 @@ function nuevaConversacion() {
   detenerDictado();
   callar();
   pintarVacia();
+  mostrarSelectorIdioma();
   $("#texto-paciente").value = "";
   $("#texto-profesional").value = "";
   aplicarIdiomaPaciente();
@@ -649,8 +731,10 @@ function nuevaConversacion() {
 /** Pantalla de bienvenida: saludo, cómo se usa y unas frases para empezar. */
 function pintarVacia() {
   const conversacion = $("#conversacion");
-  const tarjeta = $("#preparacion"); // la tarjeta de preparación vive dentro de la conversación
-  conversacion.replaceChildren($("#plantilla-vacia").content.cloneNode(true), tarjeta);
+  // La tarjeta de preparación y el selector de idioma viven dentro de la conversación.
+  const tarjeta = $("#preparacion");
+  const selector = $("#elegir-idioma");
+  conversacion.replaceChildren($("#plantilla-vacia").content.cloneNode(true), selector, tarjeta);
   pintarFrasesInicio();
 }
 
@@ -664,6 +748,80 @@ function pintarFrasesInicio() {
     b.addEventListener("click", () => enviar("profesional", frase));
     cont.append(b);
   }
+}
+
+// ---------- Respuestas rápidas del paciente ----------
+// Sí · No · No entiendo · Repita, ya escritas en su idioma: salen al instante, sin traductor.
+
+function pintarRespuestas() {
+  const cont = $("#respuestas");
+  cont.replaceChildren();
+  const lista = RESPUESTAS[paciente.traduccion];
+  cont.hidden = !lista;
+  if (!lista) return;
+  lista.forEach((texto, i) => {
+    const b = document.createElement("button");
+    b.className = `respuesta r${i}`;
+    b.title = RESPUESTAS_ES[i];
+    const t = document.createElement("span");
+    t.className = "respuesta-texto";
+    t.textContent = texto;
+    const es = document.createElement("small");
+    es.textContent = RESPUESTAS_ES[i];
+    es.lang = "es";
+    es.dir = "ltr";
+    b.append(t, es);
+    b.addEventListener("click", () => responderRapido(texto, RESPUESTAS_ES[i]));
+    cont.append(b);
+  });
+}
+
+function responderRapido(texto, enEspanol) {
+  detenerDictado();
+  const burbuja = crearBurbuja("paciente", texto, paciente);
+  completarBurbuja(burbuja, enEspanol, PROFESIONAL, texto, paciente);
+  if (ajustes.leerProfesional) leerYAvisar(enEspanol, PROFESIONAL);
+}
+
+// ---------- Elegir idioma (al empezar una conversación nueva) ----------
+// El paciente señala su idioma, escrito en su propio alfabeto.
+
+const IDIOMAS_A_LA_VISTA = 8;
+
+function prepararSelectorIdioma() {
+  $("#mas-idiomas").addEventListener("click", () => {
+    $("#elegir-idioma").classList.add("todos");
+  });
+  $("#seguir-idioma").addEventListener("click", () => { $("#elegir-idioma").hidden = true; });
+}
+
+function mostrarSelectorIdioma() {
+  const rejilla = $("#rejilla-idiomas");
+  rejilla.replaceChildren();
+  const orden = [paciente, ...IDIOMAS.filter((i) => i !== paciente)];
+  orden.forEach((idioma, n) => {
+    const b = document.createElement("button");
+    b.className = `tarjeta-idioma${idioma === paciente ? " actual" : ""}${n >= IDIOMAS_A_LA_VISTA ? " extra" : ""}`;
+    const nativo = document.createElement("b");
+    nativo.textContent = idioma.nativo;
+    nativo.lang = idioma.traduccion;
+    nativo.dir = idioma.dir;
+    const nombre = document.createElement("span");
+    nombre.textContent = idioma.nombre;
+    b.append(nativo, nombre);
+    b.addEventListener("click", () => {
+      $("#elegir-idioma").hidden = true;
+      if (idioma !== paciente) {
+        $("#idioma").value = idioma.id;
+        cambiarIdioma(idioma.id);
+      }
+    });
+    rejilla.append(b);
+  });
+  $("#elegir-idioma").classList.remove("todos");
+  $("#mas-idiomas").hidden = orden.length <= IDIOMAS_A_LA_VISTA;
+  $("#seguir-idioma").textContent = `Seguir con ${enMinuscula(paciente.nombre)}`;
+  $("#elegir-idioma").hidden = false;
 }
 
 // ---------- Dictado ----------
@@ -746,15 +904,34 @@ function detenerDictado() {
 
 // ---------- Frases rápidas ----------
 
+let temaActivo = "Todas";
+
+/** Frases rápidas del profesional, por temas (Citas · Datos · Indicaciones · Mías). */
 function pintarFrases() {
   const cont = $("#frases");
   cont.replaceChildren();
+  const hayMias = ajustes.frases.some((f) => temaDe(f) === "Mías");
+  const temas = ["Todas", ...TEMAS.filter((t) => t !== "Mías" || hayMias)];
+  if (!temas.includes(temaActivo)) temaActivo = "Todas";
+  const barra = document.createElement("div");
+  barra.className = "temas";
+  for (const tema of temas) {
+    const t = document.createElement("button");
+    t.textContent = tema;
+    t.className = tema === temaActivo ? "activo" : "";
+    t.addEventListener("click", () => { temaActivo = tema; pintarFrases(); });
+    barra.append(t);
+  }
+  const chips = document.createElement("div");
+  chips.className = "lista-chips";
   for (const frase of ajustes.frases) {
+    if (temaActivo !== "Todas" && temaDe(frase) !== temaActivo) continue;
     const b = document.createElement("button");
     b.textContent = frase;
     b.addEventListener("click", () => enviar("profesional", frase));
-    cont.append(b);
+    chips.append(b);
   }
+  cont.append(barra, chips);
   pintarFrasesInicio();
 
   const lista = $("#lista-frases");

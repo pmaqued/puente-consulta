@@ -108,25 +108,40 @@ svg { width: 20px; height: 20px; flex: none; }
   padding: 6px 40px 6px 8px; border-radius: 999px;
 }
 .idioma-paciente select option { font-size: 15px; font-weight: 400; }
+.idioma-paciente select { max-width: 330px; text-overflow: ellipsis; }
 
 .acciones { display: flex; gap: 10px; align-items: center; flex: 1 1 0; justify-content: flex-end; min-width: max-content; }
 
-/* Franja de estado, debajo de la barra */
-.estado { order: 3; flex: 1 1 100%; margin: 0 -24px -12px; padding: 7px 24px; min-height: 36px;
-  font-size: 13.5px; line-height: 1.35; color: var(--suave); display: flex; align-items: center; gap: 10px;
-  background: var(--superficie-2); border-top: 1px solid var(--borde-suave); }
-.estado::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--verde);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--verde) 20%, transparent); }
-.estado:has(.error)::before { background: var(--rojo); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rojo) 20%, transparent); }
-.estado:has(progress)::before { background: var(--azul); box-shadow: 0 0 0 3px color-mix(in srgb, var(--azul) 20%, transparent); }
-.estado:empty { display: none; }
-.estado progress { width: 150px; height: 8px; appearance: none; border: none; border-radius: 99px; overflow: hidden;
-  background: var(--azul-claro); }
-.estado progress::-webkit-progress-bar { background: var(--azul-claro); border-radius: 99px; }
-.estado progress::-webkit-progress-value { background: var(--azul); border-radius: 99px; transition: width 0.3s; }
-.estado progress::-moz-progress-bar { background: var(--azul); border-radius: 99px; }
-.estado .error { color: var(--rojo); }
-.estado .boton { padding: 5px 14px; font-size: 13.5px; }
+/* Pastilla de estado en la barra (discreta cuando todo va bien) */
+.chip-estado { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; white-space: nowrap;
+  padding: 5px 12px; border-radius: 99px; border: 1px solid; cursor: default; }
+.chip-estado[hidden] { display: none; }
+.chip-estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip-estado[data-tipo="ok"] { color: var(--verde-oscuro); background: var(--verde-claro); border-color: var(--verde-borde); }
+.chip-estado:not([data-tipo="ok"]) { cursor: pointer; }
+.chip-estado[data-tipo="va"] { color: var(--azul-oscuro); background: var(--azul-claro); border-color: var(--azul-borde); }
+.chip-estado[data-tipo="va"]::before { animation: latido 1.2s ease-in-out infinite; }
+.chip-estado[data-tipo="error"] { color: var(--rojo); background: color-mix(in srgb, var(--rojo) 8%, white);
+  border-color: color-mix(in srgb, var(--rojo) 30%, white); }
+
+/* Avisos flotantes bajo la barra */
+.estado { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 5; max-width: min(760px, calc(100vw - 32px));
+  display: flex; align-items: center; gap: 12px; padding: 9px 10px 9px 18px; border-radius: 16px; font-size: 14.5px;
+  background: var(--texto); color: white; box-shadow: 0 10px 30px rgb(34 48 61 / 0.25); animation: aparece 0.2s ease-out; }
+.estado[hidden] { display: none; }
+.estado.es-error { background: #fff; color: var(--rojo); border: 1px solid color-mix(in srgb, var(--rojo) 35%, white); }
+.estado .error { color: inherit; }
+.estado progress { width: 140px; height: 8px; appearance: none; border: none; border-radius: 99px; overflow: hidden; background: rgb(255 255 255 / 0.25); }
+.estado progress::-webkit-progress-bar { background: rgb(255 255 255 / 0.25); border-radius: 99px; }
+.estado progress::-webkit-progress-value { background: #fff; border-radius: 99px; transition: width 0.3s; }
+.estado progress::-moz-progress-bar { background: #fff; border-radius: 99px; }
+.estado .boton { padding: 6px 14px; font-size: 14px; background: #fff; color: var(--azul-oscuro); }
+.estado .boton:hover:not(:disabled) { background: var(--azul-claro); }
+.estado.es-error .boton { background: var(--rojo); color: #fff; }
+.cerrar-aviso { flex: none; width: 28px; height: 28px; border-radius: 50%; border: none; background: transparent; color: inherit;
+  opacity: 0.7; cursor: pointer; display: grid; place-items: center; }
+.cerrar-aviso:hover { opacity: 1; background: rgb(127 127 127 / 0.2); }
+.cerrar-aviso svg { width: 14px; height: 14px; }
 
 /* ---- Botones ---- */
 .boton {
@@ -302,7 +317,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .panel.paciente { background: var(--verde-claro); border-color: var(--verde-borde); }
 .panel.profesional { background: var(--azul-claro); border-color: var(--azul-borde); }
 .panel:has(.microfono.escuchando) { background: #fbefed; border-color: #ebc3be; }
-.columna { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.columna { display: flex; flex-direction: column; gap: 8px; min-width: 0; align-self: start; }
 
 /* Misma altura en los dos paneles (el del profesional lleva «Frases rápidas»): así las cajas quedan alineadas. */
 .titulo-panel { font-size: 13.5px; color: var(--suave); display: flex; align-items: center; gap: 6px;
@@ -359,8 +374,66 @@ svg { width: 20px; height: 20px; flex: none; }
   100% { box-shadow: 0 0 0 18px rgb(196 71 60 / 0), 0 0 0 6px rgb(255 255 255 / 0.7); }
 }
 
-.frases { display: flex; flex-wrap: wrap; gap: 6px; max-height: 96px; overflow-y: auto; }
 .frases[hidden] { display: none; }
+
+/* Respuestas rápidas del paciente */
+.respuestas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.respuestas[hidden] { display: none; }
+.respuesta { font: inherit; cursor: pointer; border-radius: 12px; padding: 6px 6px 5px; border: 1px solid var(--verde-borde);
+  background: var(--superficie); color: var(--texto); display: flex; flex-direction: column; align-items: center; gap: 0;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.05s; min-width: 0; }
+.respuesta-texto { font-size: 16px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.respuesta small { font-size: 11.5px; color: var(--suave); }
+.respuesta:hover { border-color: var(--verde); }
+.respuesta:active { transform: translateY(1px); }
+.respuesta.r0 { background: #eaf6ee; border-color: #c3e3cc; }
+.respuesta.r1 { background: #fbefed; border-color: #ecccc7; }
+.respuesta.r0:hover { border-color: #5aa874; } .respuesta.r1:hover { border-color: var(--rojo); }
+
+/* Frases rápidas por temas */
+.frases { display: flex; flex-direction: column; gap: 6px; }
+.temas { display: flex; gap: 4px; flex-wrap: wrap; }
+.temas button { font: inherit; font-size: 12.5px; font-weight: 600; padding: 3px 11px; border-radius: 99px; cursor: pointer;
+  border: 1px solid var(--borde-suave); background: var(--superficie); color: var(--suave); }
+.temas button:hover { color: var(--texto); border-color: var(--azul-borde); }
+.temas button.activo { background: var(--azul); border-color: var(--azul); color: white; }
+.lista-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 84px; overflow-y: auto; }
+.lista-chips button {
+  font: inherit; font-size: 14px; padding: 5px 13px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--azul-borde); background: var(--superficie); color: var(--texto);
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.lista-chips button:hover { background: var(--azul); border-color: var(--azul); color: white; }
+
+/* Números, fechas y horas resaltados en los mensajes */
+.dato { background: #fff1bd; border-radius: 4px; padding: 0 3px; box-shadow: inset 0 -2px 0 #efc94c; unicode-bidi: isolate; }
+
+/* Elegir idioma (al empezar una conversación nueva) */
+.elegir-idioma { margin: auto; width: min(860px, 100%); text-align: center; padding: 0 0 6px; animation: aparece 0.2s ease-out; }
+.elegir-idioma[hidden] { display: none; }
+.conversacion:has(> .elegir-idioma:not([hidden])) > .vacia { display: none; }
+.elegir-idioma h2 { margin: 0; font-family: var(--letra-titulos); font-size: 28px; font-weight: 650; }
+.elegir-sub { margin: 4px 0 14px; color: var(--suave); font-size: 15px; }
+.rejilla-idiomas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tarjeta-idioma { font: inherit; cursor: pointer; padding: 11px 10px 10px; border-radius: 16px; border: 1px solid var(--borde-suave);
+  background: var(--superficie); color: var(--texto); box-shadow: var(--sombra); display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s; }
+.tarjeta-idioma:hover { border-color: var(--verde); transform: translateY(-1px); box-shadow: var(--sombra-alta); }
+.tarjeta-idioma b { font-size: 21px; font-weight: 600; line-height: 1.3; }
+.tarjeta-idioma span { font-size: 13px; color: var(--suave); }
+.tarjeta-idioma.actual { background: var(--verde-claro); border-color: var(--verde-borde); }
+.tarjeta-idioma.actual::before { content: "Último usado"; font-size: 11px; font-weight: 700; color: var(--verde-oscuro);
+  text-transform: uppercase; letter-spacing: 0.05em; }
+.tarjeta-idioma.extra { display: none; }
+.elegir-idioma.todos .tarjeta-idioma.extra { display: flex; }
+.elegir-idioma.todos #mas-idiomas { display: none; }
+.elegir-pie { margin: 12px 0 0; display: flex; justify-content: center; gap: 16px; }
+.elegir-pie .enlace[hidden] { display: none; }
+
+/* Piezas que solo salen al imprimir */
+.impreso-cabecera, .impreso-cita, .impreso-pie { display: none; }
+.con-cita { font-size: 14px; color: var(--suave); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; align-self: center; }
+.con-cita input { accent-color: var(--azul); width: 16px; height: 16px; margin: 0; }
 
 /* ---- Pantalla grande (para que el paciente lea un mensaje de lejos) ---- */
 .grande {
@@ -472,16 +545,31 @@ dialog form .pie-nota { margin-top: auto; padding-top: 18px; }
 
 /* ---- Impresión: solo el mensaje en grande, en blanco y negro ---- */
 @media print {
+  @page { size: A4; margin: 18mm 18mm 16mm; }
   body > *:not(#grande) { display: none !important; }
-  .grande { position: static; display: block !important; background: white; color: black; padding: 0; }
-  .grande-centro { display: block; padding: 0; text-align: center; }
-  .grande-traduccion { font-size: 34pt; color: black; }
-  .grande-original { font-size: 14pt; color: #444; margin-top: 18pt; border-top: 1px solid #ccc; padding-top: 12pt; }
-  .grande-fecha { display: block; font-size: 10pt; color: #666; margin-top: 30pt; }
+  .grande { position: static; display: flex !important; flex-direction: column; align-items: stretch; min-height: 255mm; background: white; color: black; padding: 0; }
   .grande-arriba, .grande-acciones { display: none !important; }
+  .impreso-cabecera { display: flex; align-items: center; gap: 12px; padding-bottom: 10pt; border-bottom: 1px solid #bbb;
+    font-size: 10pt; color: #333; line-height: 1.3; }
+  .impreso-cabecera img { filter: grayscale(1); border-radius: 8px; }
+  .impreso-fecha { margin-left: auto; color: #666; }
+  .grande-centro { display: block; flex: none; padding: 0; text-align: start; margin-top: 26pt; }
+  .grande-traduccion { font-size: 28pt; color: black; line-height: 1.35; }
+  .grande-original { font-size: 13pt; color: #444; margin-top: 14pt; border-top: none; padding-top: 0; max-width: none; }
+  .grande-fecha { display: none; }
+  .dato { background: none; box-shadow: none; font-weight: 700; padding: 0; }
+  .grande.con-cita .impreso-cita { display: grid; grid-template-columns: auto 1fr; gap: 12pt 18pt; margin-top: 26pt;
+    border: 1.5pt solid #222; border-radius: 10pt; padding: 14pt 18pt; font-size: 12pt; color: #555; }
+  .impreso-cita b { border-bottom: 1px solid #999; min-height: 14pt; }
+  .impreso-pie { display: block; margin-top: auto; padding-top: 8pt; border-top: 1px solid #ddd; font-size: 9pt; color: #777; }
 }
 
 /* ---- Pantallas medianas ---- */
+@media (max-width: 1180px) {
+  .chip-estado { font-size: 0; gap: 0; padding: 8px; }
+  .idioma-paciente select { max-width: 250px; }
+}
+
 @media (max-width: 1100px) {
   .marca-lema { display: none; }
   .panel { grid-template-columns: 1fr; gap: 8px; }
@@ -495,7 +583,6 @@ dialog form .pie-nota { margin-top: auto; padding-top: 18px; }
   .barra { padding: 10px 16px; }
   .marca, .acciones { flex: 0 0 auto; }
   .idioma-paciente { order: 4; flex: 1 1 100%; justify-content: space-between; }
-  .estado { margin: 0 -16px -10px; padding: 7px 16px; }
   .aviso { margin: 10px 16px 0; }
   .conversacion { padding: 18px 16px; }
   .pasos { grid-template-columns: 1fr; }

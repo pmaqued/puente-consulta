@@ -60,6 +60,40 @@ export const TEXTOS_BASE = {
   bienvenida: "Esta pantalla traduce automáticamente. Hable despacio y con frases cortas.",
 };
 
+// Respuestas rápidas del paciente (botones grandes en su lado): ya escritas en cada idioma, para que
+// funcionen al instante sin pasar por el traductor. Mismo orden que RESPUESTAS_ES.
+export const RESPUESTAS_ES = ["Sí", "No", "No entiendo", "¿Puede repetirlo?"];
+export const RESPUESTAS = {
+  ar: ["نعم", "لا", "لم أفهم", "أعد من فضلك"],
+  zh: ["是", "不是", "我听不懂", "请再说一遍"],
+  "zh-Hant": ["是", "不是", "我聽不懂", "請再說一遍"],
+  en: ["Yes", "No", "I don’t understand", "Please repeat"],
+  fr: ["Oui", "Non", "Je ne comprends pas", "Répétez, s’il vous plaît"],
+  ro: ["Da", "Nu", "Nu înțeleg", "Repetați, vă rog"],
+  uk: ["Так", "Ні", "Я не розумію", "Повторіть, будь ласка"],
+  ru: ["Да", "Нет", "Я не понимаю", "Повторите, пожалуйста"],
+  pt: ["Sim", "Não", "Não percebo", "Repita, por favor"],
+  bn: ["হ্যাঁ", "না", "আমি বুঝতে পারছি না", "আবার বলুন"],
+  hi: ["हाँ", "नहीं", "मुझे समझ नहीं आया", "कृपया दोहराइए"],
+};
+
+// Temas de las frases rápidas de fábrica. Las que añada el profesional van a «Mías».
+export const TEMAS_FRASES = {
+  "Hola, buenos días. ¿En qué le puedo ayudar?": "Indicaciones",
+  "¿Tiene cita?": "Citas",
+  "¿Me deja su tarjeta sanitaria, por favor?": "Datos",
+  "¿Cuál es su nombre completo?": "Datos",
+  "¿Cuál es su fecha de nacimiento?": "Datos",
+  "¿Me da un número de teléfono?": "Datos",
+  "Espere en la sala, por favor. Le llamarán por su nombre.": "Indicaciones",
+  "Le doy cita para el día que le escribo en este papel.": "Citas",
+  "Tiene que venir otro día. Le doy una cita nueva.": "Citas",
+  "¿Puede venir alguien que hable español para ayudarle?": "Indicaciones",
+  "No le he entendido. ¿Puede repetirlo más despacio?": "Indicaciones",
+};
+export const TEMAS = ["Citas", "Datos", "Indicaciones", "Mías"];
+export const temaDe = (frase) => TEMAS_FRASES[frase] ?? "Mías";
+
 // Frases rápidas del profesional (se pueden añadir y quitar desde la página; se guardan en el navegador).
 export const FRASES_POR_DEFECTO = [
   "Hola, buenos días. ¿En qué le puedo ayudar?",
