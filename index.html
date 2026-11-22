@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Puente Consulta</title>
+  <link rel="icon" href="icono.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="stylesheet" href="estilos.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="barra">
+    <div class="marca">
+      <img src="icono.png" alt="" width="32" height="32">
+      <span>Puente <strong>Consulta</strong></span>
+    </div>
+    <label class="selector">
+      Idioma del paciente
+      <select id="idioma"></select>
+    </label>
+    <div id="estado" class="estado" role="status"></div>
+    <div class="acciones">
+      <div class="genero" role="group" aria-label="Voz en español">
+        <span>Voz en español</span>
+        <button id="voz-hombre" class="boton icono" title="Leer el español con voz de hombre">Hombre</button>
+        <button id="voz-mujer" class="boton icono" title="Leer el español con voz de mujer">Mujer</button>
+      </div>
+      <div class="tamano" role="group" aria-label="Tamaño de la letra">
+        <button id="letra-menos" class="boton icono" title="Letra más pequeña">A−</button>
+        <button id="letra-mas" class="boton icono" title="Letra más grande">A+</button>
+      </div>
+      <button id="nueva" class="boton secundario" title="Borra la conversación de la pantalla">Nueva conversación</button>
+      <button id="abrir-ajustes" class="boton icono" title="Ajustes" aria-label="Ajustes">⚙︎</button>
+    </div>
+  </header>
+
+  <div id="aviso-uso" class="aviso">
+    <span><strong>Ayuda para la comunicación administrativa</strong> (citas, datos, indicaciones). No la uses para
+      información clínica delicada: la traducción automática puede equivocarse.</span>
+    <button class="cerrar" aria-label="Ocultar aviso">×</button>
+  </div>
+
+  <main id="conversacion" class="conversacion" aria-live="polite">
+    <div id="vacia" class="vacia">
+      <p id="bienvenida-paciente" class="bienvenida-paciente"></p>
+      <p class="bienvenida-profesional">Esta pantalla traduce automáticamente. Hable despacio y con frases cortas.</p>
+    </div>
+  </main>
+
+  <footer class="paneles">
+    <section id="panel-paciente" class="panel paciente">
+      <div class="titulo-panel"><span class="quien">Paciente</span> · <span id="nombre-paciente"></span></div>
+      <div class="fila">
+        <button class="microfono" data-lado="paciente">
+          <span class="punto"></span><span class="texto-boton" id="hablar-paciente"></span>
+        </button>
+        <textarea id="texto-paciente" rows="2"></textarea>
+        <button class="boton enviar" data-lado="paciente" id="enviar-paciente"></button>
+      </div>
+    </section>
+
+    <section id="panel-profesional" class="panel profesional">
+      <div class="titulo-panel">
+        <span class="quien">Profesional</span> · Español
+        <button id="ver-frases" class="enlace">Frases rápidas</button>
+      </div>
+      <div id="frases" class="frases" hidden></div>
+      <div class="fila">
+        <button class="microfono" data-lado="profesional">
+          <span class="punto"></span><span class="texto-boton">Pulse y hable</span>
+        </button>
+        <textarea id="texto-profesional" rows="2" placeholder="Escriba aquí… (↩ envía, ⇧↩ nueva línea)"></textarea>
+        <button class="boton enviar" data-lado="profesional">Enviar</button>
+      </div>
+    </section>
+  </footer>
+
+  <div id="grande" class="grande" hidden tabindex="-1">
+    <p id="grande-traduccion" class="grande-traduccion"></p>
+    <p id="grande-original" class="grande-original"></p>
+    <p id="grande-fecha" class="grande-fecha"></p>
+    <div class="grande-acciones">
+      <button id="imprimir" class="boton secundario" title="Imprimir este mensaje para dárselo al paciente">🖨 Imprimir</button>
+    </div>
+    <p class="grande-pista">Clic o esc para cerrar</p>
+  </div>
+
+  <dialog id="ajustes">
+    <form method="dialog">
+      <h2>Ajustes</h2>
+
+      <fieldset>
+        <legend>Voz</legend>
+        <div class="motor-voz" role="radiogroup" aria-label="Voces para leer en voz alta">
+          <label><input type="radio" name="motor-voz" value="puente"> <strong>Voces de Puente</strong>
+            (recomendado)</label>
+          <p class="nota">Funcionan igual en Chrome y en Edge y en cualquier ordenador, sin instalar nada, y
+            <strong>no envían nada fuera</strong>. Cada voz se descarga una vez (60–80 MB) y queda guardada.</p>
+          <label><input type="radio" name="motor-voz" value="navegador"> <strong>Voces del navegador</strong></label>
+          <p class="nota">Las del ordenador o del navegador. En <strong>Edge</strong>, sus voces «Natural» suenan muy
+            bien, pero son de internet: hay que permitir abajo las voces de internet (el texto va a Microsoft).</p>
+        </div>
+        <label><input type="checkbox" id="leer-paciente"> Leer en voz alta lo que se escribe y se traduce para el paciente</label>
+        <label><input type="checkbox" id="leer-profesional"> Leer en voz alta lo que se escribe y se traduce al español</label>
+        <p class="nota">Lo que se <strong>dicta</strong> con «Pulse y hable» se lee siempre en voz alta al traducirlo.
+          Voces: el español, la que elijas arriba (hombre o mujer); el árabe, de hombre; el chino, de mujer.</p>
+        <label><input type="checkbox" id="internet-dictado"> Permitir el dictado por internet</label>
+        <p class="nota">Si el navegador no puede dictar en el propio ordenador, el dictado <strong>envía el audio
+          a Google (Chrome) o Microsoft (Edge)</strong>. Son datos de salud: actívalo solo si tu centro lo permite.
+          Sin esto, el paciente y tú podéis escribir.</p>
+        <label><input type="checkbox" id="internet-voces"> Permitir voces de internet para leer en voz alta</label>
+        <p class="nota">Algunas voces (sobre todo en árabe y chino) solo existen en la nube y envían el texto fuera.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Frases rápidas</legend>
+        <ul id="lista-frases" class="lista-frases"></ul>
+        <div class="fila-anadir">
+          <input id="nueva-frase" type="text" placeholder="Nueva frase…">
+          <button type="button" id="anadir-frase" class="boton secundario">Añadir</button>
+          <button type="button" id="restaurar-frases" class="enlace">Restaurar las de fábrica</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Este navegador</legend>
+        <ul id="diagnostico" class="diagnostico"></ul>
+        <details class="ayuda-voces">
+          <summary>¿Las voces suenan mal o falta alguna? Cómo instalar voces mejores (gratis)</summary>
+          <p><strong>Mac:</strong> Ajustes del Sistema › Accesibilidad › Contenido leído › Voz del sistema ›
+            <em>Gestionar voces…</em> Descarga las «Mejorada» o «Premium»: en español <em>Jorge</em> (hombre) y
+            <em>Mónica</em> (mujer), en árabe <em>Majed</em>, en chino <em>Tingting</em> y <em>Meijia</em>.</p>
+          <p><strong>Windows:</strong> Configuración › Hora e idioma › Voz › <em>Agregar voces</em> (por ejemplo,
+            árabe y chino). En <strong>Edge</strong>, las voces «Natural» (Alvaro, Elvira, Hamed, Xiaoxiao) suenan
+            muy bien, pero son de internet: envían el texto a Microsoft.</p>
+          <p>Después de instalar, cierra y vuelve a abrir el navegador.</p>
+        </details>
+      </fieldset>
+
+      <p class="nota">La conversación solo está en esta pestaña: no se guarda en ningún sitio y se borra con
+        <em>Nueva conversación</em> o al cerrar la pestaña. Los ajustes y las frases se guardan en este navegador.</p>
+
+      <div class="pie-dialogo"><button class="boton">Cerrar</button></div>
+    </form>
+  </dialog>
+
+  <div id="sin-soporte" class="sin-soporte" hidden>
+    <div>
+      <img src="icono.png" alt="" width="72" height="72">
+      <h1>Este navegador no tiene el traductor integrado</h1>
+      <p>Puente Consulta traduce en el propio ordenador, sin enviar nada fuera, usando el traductor que traen
+        <strong>Google Chrome (versión 138 o posterior)</strong> y <strong>Microsoft Edge (148 o posterior)</strong>
+        en ordenador. No funciona en móviles, Firefox ni Safari.</p>
+      <p>Actualiza el navegador o ábrelo con Chrome o Edge.</p>
+    </div>
+  </div>
+</body>
+</html>

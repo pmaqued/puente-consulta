@@ -1,0 +1,4 @@
+piper-tts-web (@mintplex-labs/piper-tts-web 1.0.5) — MIT License
+https://github.com/Mintplex-Labs/piper-tts-web
+Fork of @diffusion-studio/vits-web (MIT). Voices: Rhasspy Piper (https://github.com/rhasspy/piper);
+each voice has its own licence in its MODEL_CARD on Hugging Face.
