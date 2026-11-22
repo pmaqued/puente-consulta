@@ -225,13 +225,15 @@ button { -webkit-tap-highlight-color: transparent; }
 .panel { border-radius: var(--radio); padding: 12px 14px 14px; border: 1px solid; position: relative; }
 .panel.paciente { background: var(--verde-claro); border-color: var(--verde-borde); }
 .panel.profesional { background: var(--azul-claro); border-color: var(--azul-borde); }
-.titulo-panel { font-size: 13.5px; color: var(--suave); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+/* Misma altura en los dos paneles (el del profesional lleva «Frases rápidas»): así las cajas quedan alineadas. */
+.titulo-panel { font-size: 13.5px; color: var(--suave); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  height: 24px; line-height: 24px; }
 .titulo-panel .quien { font-weight: 700; font-size: 14px; letter-spacing: 0.01em; display: inline-flex;
   align-items: center; gap: 7px; }
 .titulo-panel .quien::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
 .panel.paciente .titulo-panel .quien { color: var(--verde-oscuro); }
 .panel.profesional .titulo-panel .quien { color: var(--azul-oscuro); }
-.titulo-panel .enlace { margin-left: auto; }
+.titulo-panel .enlace { margin-left: auto; padding: 0 6px; line-height: 24px; height: 24px; }
 .fila { display: flex; gap: 10px; align-items: stretch; }
 .fila textarea {
   flex: 1; font: inherit; font-size: 18px; padding: 10px 14px; border-radius: var(--radio-pequeno); resize: none;
