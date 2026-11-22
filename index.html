@@ -6,15 +6,18 @@
   <title>Puente Consulta</title>
   <link rel="icon" href="icono.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#ffffff">
   <link rel="stylesheet" href="estilos.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <header class="barra">
     <div class="marca">
-      <img src="icono.png" alt="" width="32" height="32">
-      <span>Puente <strong>Consulta</strong></span>
+      <img src="icono.png" alt="" width="38" height="38">
+      <div class="marca-texto">
+        <span class="marca-nombre">Puente <strong>Consulta</strong></span>
+        <span class="marca-lema">Traducción cara a cara</span>
+      </div>
     </div>
     <label class="selector">
       Idioma del paciente
@@ -24,15 +27,18 @@
     <div class="acciones">
       <div class="genero" role="group" aria-label="Voz en español">
         <span>Voz en español</span>
-        <button id="voz-hombre" class="boton icono" title="Leer el español con voz de hombre">Hombre</button>
-        <button id="voz-mujer" class="boton icono" title="Leer el español con voz de mujer">Mujer</button>
+        <div class="segmentado">
+          <button id="voz-hombre" class="boton icono" title="Leer el español con voz de hombre">Hombre</button>
+          <button id="voz-mujer" class="boton icono" title="Leer el español con voz de mujer">Mujer</button>
+        </div>
       </div>
-      <div class="tamano" role="group" aria-label="Tamaño de la letra">
+      <div class="tamano segmentado" role="group" aria-label="Tamaño de la letra">
         <button id="letra-menos" class="boton icono" title="Letra más pequeña">A−</button>
         <button id="letra-mas" class="boton icono" title="Letra más grande">A+</button>
       </div>
+      <span class="separador" aria-hidden="true"></span>
       <button id="nueva" class="boton secundario" title="Borra la conversación de la pantalla">Nueva conversación</button>
-      <button id="abrir-ajustes" class="boton icono" title="Ajustes" aria-label="Ajustes">⚙︎</button>
+      <button id="abrir-ajustes" class="boton icono redondo" title="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     </div>
   </header>
 
@@ -82,7 +88,7 @@
     <p id="grande-original" class="grande-original"></p>
     <p id="grande-fecha" class="grande-fecha"></p>
     <div class="grande-acciones">
-      <button id="imprimir" class="boton secundario" title="Imprimir este mensaje para dárselo al paciente">🖨 Imprimir</button>
+      <button id="imprimir" class="boton secundario" title="Imprimir este mensaje para dárselo al paciente"><svg class="icono-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg> Imprimir</button>
     </div>
     <p class="grande-pista">Clic o esc para cerrar</p>
   </div>
