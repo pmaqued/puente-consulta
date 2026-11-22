@@ -61,6 +61,7 @@ scripts/consulta.sh            # la abre en http://localhost:8642 con Chrome (po
 scripts/consulta.sh --chrome   # lo mismo, diciéndolo explícitamente
 scripts/consulta.sh --edge     # la misma página, en Microsoft Edge (hay que tenerlo instalado)
 scripts/consulta.sh --prueba   # modo de prueba: traducción falsa, para revisar la página en cualquier navegador
+# …/?prueba=descarga           # además simula la primera descarga (para ver la tarjeta de preparación)
 ```
 
 ## Usarla en los ordenadores del centro

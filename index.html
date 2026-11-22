@@ -12,6 +12,22 @@
   <script type="module" src="app.js"></script>
 </head>
 <body>
+  <!-- Iconos (se usan con <svg><use href="#i-…"/></svg>) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></symbol>
+      <symbol id="i-parar" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5"/></symbol>
+      <symbol id="i-grande" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+      <symbol id="i-altavoz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+      <symbol id="i-imprimir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></symbol>
+      <symbol id="i-ajustes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+      <symbol id="i-mas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-cerrar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></symbol>
+      <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    </defs>
+  </svg>
+
   <header class="barra">
     <div class="marca">
       <img src="icono.png" alt="" width="38" height="38">
@@ -20,119 +36,189 @@
         <span class="marca-lema">Traducción cara a cara</span>
       </div>
     </div>
-    <label class="selector">
-      Idioma del paciente
-      <select id="idioma"></select>
+
+    <label class="idioma-paciente" title="Idioma del paciente">
+      <span class="rotulo-idioma">Paciente</span>
+      <select id="idioma" aria-label="Idioma del paciente"></select>
     </label>
-    <div id="estado" class="estado" role="status"></div>
+
     <div class="acciones">
-      <div class="genero" role="group" aria-label="Voz en español">
-        <span>Voz en español</span>
-        <div class="segmentado">
-          <button id="voz-hombre" class="boton icono" title="Leer el español con voz de hombre">Hombre</button>
-          <button id="voz-mujer" class="boton icono" title="Leer el español con voz de mujer">Mujer</button>
-        </div>
-      </div>
-      <div class="tamano segmentado" role="group" aria-label="Tamaño de la letra">
-        <button id="letra-menos" class="boton icono" title="Letra más pequeña">A−</button>
-        <button id="letra-mas" class="boton icono" title="Letra más grande">A+</button>
-      </div>
-      <span class="separador" aria-hidden="true"></span>
-      <button id="nueva" class="boton secundario" title="Borra la conversación de la pantalla">Nueva conversación</button>
-      <button id="abrir-ajustes" class="boton icono redondo" title="Ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <button id="nueva" class="boton secundario" title="Borra la conversación de la pantalla">
+        <svg class="icono-svg" aria-hidden="true"><use href="#i-mas"/></svg>Nueva conversación</button>
+      <button id="abrir-vista" class="boton icono redondo vista" popovertarget="menu-vista"
+        title="Voz y tamaño de letra" aria-label="Voz y tamaño de letra">Aa</button>
+      <button id="abrir-ajustes" class="boton icono redondo" title="Ajustes" aria-label="Ajustes">
+        <svg aria-hidden="true"><use href="#i-ajustes"/></svg></button>
     </div>
+
+    <div id="estado" class="estado" role="status"></div>
   </header>
 
-  <div id="aviso-uso" class="aviso">
-    <span><strong>Ayuda para la comunicación administrativa</strong> (citas, datos, indicaciones). No la uses para
-      información clínica delicada: la traducción automática puede equivocarse.</span>
-    <button class="cerrar" aria-label="Ocultar aviso">×</button>
+  <!-- Menú «Aa»: voz del español y tamaño de la letra -->
+  <div id="menu-vista" class="menu-vista" popover>
+    <p class="menu-titulo">Voz en español</p>
+    <div class="genero segmentado" role="group" aria-label="Voz en español">
+      <button id="voz-hombre" class="boton icono" title="Leer el español con voz de hombre">Hombre</button>
+      <button id="voz-mujer" class="boton icono" title="Leer el español con voz de mujer">Mujer</button>
+    </div>
+    <p class="menu-titulo">Tamaño de la letra</p>
+    <div class="tamano segmentado" role="group" aria-label="Tamaño de la letra">
+      <button id="letra-menos" class="boton icono" title="Letra más pequeña">A−</button>
+      <span id="letra-valor" class="valor">100 %</span>
+      <button id="letra-mas" class="boton icono" title="Letra más grande">A+</button>
+    </div>
   </div>
 
-  <main id="conversacion" class="conversacion" aria-live="polite">
+  <div id="aviso-uso" class="aviso" role="note">
+    <svg class="aviso-icono" aria-hidden="true"><use href="#i-info"/></svg>
+    <span class="aviso-texto"><strong>Ayuda para la comunicación administrativa</strong> (citas, datos, indicaciones). No la
+      uses para información clínica delicada: la traducción automática puede equivocarse.</span>
+    <span class="aviso-corto">Solo para comunicación administrativa</span>
+    <button class="cerrar" aria-label="Plegar el aviso" title="Plegar el aviso">
+      <svg aria-hidden="true"><use href="#i-cerrar"/></svg></button>
+  </div>
+
+  <main id="conversacion" class="conversacion" aria-live="polite"></main>
+
+  <!-- Pantalla de bienvenida (se pone al empezar y en cada «Nueva conversación») -->
+  <template id="plantilla-vacia">
     <div id="vacia" class="vacia">
       <p id="bienvenida-paciente" class="bienvenida-paciente"></p>
       <p class="bienvenida-profesional">Esta pantalla traduce automáticamente. Hable despacio y con frases cortas.</p>
+      <ol class="pasos">
+        <li><span class="paso-num">1</span><b>Hable o escriba</b>
+          <span>Cada uno en su lado: el paciente a la izquierda y usted a la derecha.</span></li>
+        <li><span class="paso-num verde">2</span><b>Se traduce y se lee</b>
+          <span>Al terminar de hablar, se traduce y se lee en voz alta.</span></li>
+        <li><span class="paso-num">3</span><b>Enséñeselo</b>
+          <span>«Mostrar en grande» para que lo lea de lejos, o imprímalo.</span></li>
+      </ol>
+      <div class="para-empezar">
+        <p>Para empezar:</p>
+        <div id="frases-inicio" class="chips"></div>
+      </div>
     </div>
-  </main>
+  </template>
+
+  <!-- La primera vez: qué se está preparando para este idioma -->
+  <section id="preparacion" class="preparacion" hidden aria-live="polite">
+    <h2 id="prep-titulo"></h2>
+    <p class="prep-nota">Solo la primera vez en este ordenador. Después funciona sin internet.</p>
+    <ul id="prep-lista" class="prep-lista"></ul>
+    <p id="prep-aviso" class="prep-aviso" hidden></p>
+    <div id="prep-acciones" class="prep-acciones"></div>
+  </section>
 
   <footer class="paneles">
     <section id="panel-paciente" class="panel paciente">
-      <div class="titulo-panel"><span class="quien">Paciente</span> · <span id="nombre-paciente"></span></div>
-      <div class="fila">
-        <button class="microfono" data-lado="paciente">
-          <span class="punto"></span><span class="texto-boton" id="hablar-paciente"></span>
-        </button>
-        <textarea id="texto-paciente" rows="2"></textarea>
-        <button class="boton enviar" data-lado="paciente" id="enviar-paciente"></button>
+      <button class="microfono" data-lado="paciente">
+        <span class="circulo"><svg class="i-hablar"><use href="#i-mic"/></svg><svg class="i-parar"><use href="#i-parar"/></svg></span>
+        <span class="texto-boton" id="hablar-paciente"></span>
+      </button>
+      <div class="columna">
+        <div class="titulo-panel"><span class="quien">Paciente</span> · <span id="nombre-paciente"></span></div>
+        <div class="fila">
+          <textarea id="texto-paciente" rows="2"></textarea>
+          <button class="boton enviar" data-lado="paciente" id="enviar-paciente"></button>
+        </div>
       </div>
     </section>
 
     <section id="panel-profesional" class="panel profesional">
-      <div class="titulo-panel">
-        <span class="quien">Profesional</span> · Español
-        <button id="ver-frases" class="enlace">Frases rápidas</button>
-      </div>
-      <div id="frases" class="frases" hidden></div>
-      <div class="fila">
-        <button class="microfono" data-lado="profesional">
-          <span class="punto"></span><span class="texto-boton">Pulse y hable</span>
-        </button>
-        <textarea id="texto-profesional" rows="2" placeholder="Escriba aquí… (↩ envía, ⇧↩ nueva línea)"></textarea>
-        <button class="boton enviar" data-lado="profesional">Enviar</button>
+      <button class="microfono" data-lado="profesional">
+        <span class="circulo"><svg class="i-hablar"><use href="#i-mic"/></svg><svg class="i-parar"><use href="#i-parar"/></svg></span>
+        <span class="texto-boton">Pulse y hable</span>
+      </button>
+      <div class="columna">
+        <div class="titulo-panel">
+          <span class="quien">Profesional</span> · Español
+          <button id="ver-frases" class="enlace">Frases rápidas</button>
+        </div>
+        <div id="frases" class="frases" hidden></div>
+        <div class="fila">
+          <textarea id="texto-profesional" rows="2" placeholder="Escriba aquí… (↩ envía, ⇧↩ nueva línea)"></textarea>
+          <button class="boton enviar" data-lado="profesional">Enviar</button>
+        </div>
       </div>
     </section>
   </footer>
 
   <div id="grande" class="grande" hidden tabindex="-1">
-    <p id="grande-traduccion" class="grande-traduccion"></p>
-    <p id="grande-original" class="grande-original"></p>
-    <p id="grande-fecha" class="grande-fecha"></p>
-    <div class="grande-acciones">
-      <button id="imprimir" class="boton secundario" title="Imprimir este mensaje para dárselo al paciente"><svg class="icono-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg> Imprimir</button>
+    <div class="grande-arriba">
+      <span id="grande-etiqueta" class="grande-etiqueta"></span>
+      <span id="grande-hora" class="grande-hora"></span>
     </div>
-    <p class="grande-pista">Clic o esc para cerrar</p>
+    <div class="grande-centro">
+      <p id="grande-traduccion" class="grande-traduccion"></p>
+      <p id="grande-original" class="grande-original"></p>
+      <p id="grande-fecha" class="grande-fecha"></p>
+    </div>
+    <div class="grande-acciones">
+      <button id="grande-leer" class="boton secundario grande-boton-accion">
+        <svg class="icono-svg" aria-hidden="true"><use href="#i-altavoz"/></svg>Repetir en voz alta</button>
+      <button id="imprimir" class="boton secundario grande-boton-accion" title="Imprimir este mensaje para dárselo al paciente">
+        <svg class="icono-svg" aria-hidden="true"><use href="#i-imprimir"/></svg>Imprimir</button>
+      <button id="grande-cerrar" class="boton grande-boton-accion">Cerrar</button>
+    </div>
   </div>
 
   <dialog id="ajustes">
     <form method="dialog">
-      <h2>Ajustes</h2>
+      <div class="dialogo-cabecera">
+        <h2>Ajustes</h2>
+        <button class="boton icono redondo" value="cerrar" aria-label="Cerrar ajustes" title="Cerrar">
+          <svg aria-hidden="true"><use href="#i-cerrar"/></svg></button>
+      </div>
 
-      <fieldset>
-        <legend>Voz</legend>
+      <div class="pestanas" role="tablist">
+        <button type="button" role="tab" class="pestana" data-pestana="voz" aria-selected="true">Voz</button>
+        <button type="button" role="tab" class="pestana" data-pestana="frases" aria-selected="false">Frases rápidas</button>
+        <button type="button" role="tab" class="pestana" data-pestana="equipo" aria-selected="false">Este ordenador</button>
+      </div>
+
+      <div class="hoja-pestana" data-hoja="voz" role="tabpanel">
+        <p class="grupo-titulo">Con qué voces se lee en voz alta</p>
         <div class="motor-voz" role="radiogroup" aria-label="Voces para leer en voz alta">
-          <label><input type="radio" name="motor-voz" value="puente"> <strong>Voces de Puente</strong>
-            (recomendado)</label>
-          <p class="nota">Funcionan igual en Chrome y en Edge y en cualquier ordenador, sin instalar nada, y
-            <strong>no envían nada fuera</strong>. Cada voz se descarga una vez (60–80 MB) y queda guardada.</p>
-          <label><input type="radio" name="motor-voz" value="navegador"> <strong>Voces del navegador</strong></label>
-          <p class="nota">Las del ordenador o del navegador. En <strong>Edge</strong>, sus voces «Natural» suenan muy
-            bien, pero son de internet: hay que permitir abajo las voces de internet (el texto va a Microsoft).</p>
+          <label class="opcion"><input type="radio" name="motor-voz" value="puente">
+            <span><b>Voces de Puente</b> <span class="sello local">en el equipo</span> <span class="recomendado">recomendado</span>
+              <span class="nota">Iguales en Chrome y Edge y en cualquier ordenador, sin instalar nada. Cada voz se
+                descarga una vez (60–80 MB) y queda guardada.</span></span></label>
+          <label class="opcion"><input type="radio" name="motor-voz" value="navegador">
+            <span><b>Voces del navegador</b> <span class="sello nube">puede enviar datos</span>
+              <span class="nota">Las del ordenador. En <strong>Edge</strong>, sus voces «Natural» suenan muy bien pero son de
+                internet: para usarlas hay que permitir abajo las voces de internet (el texto va a Microsoft).</span></span></label>
         </div>
-        <label><input type="checkbox" id="leer-paciente"> Leer en voz alta lo que se escribe y se traduce para el paciente</label>
-        <label><input type="checkbox" id="leer-profesional"> Leer en voz alta lo que se escribe y se traduce al español</label>
-        <p class="nota">Lo que se <strong>dicta</strong> con «Pulse y hable» se lee siempre en voz alta al traducirlo.
-          Voces: el español, la que elijas arriba (hombre o mujer); el árabe, de hombre; el chino, de mujer.</p>
-        <label><input type="checkbox" id="internet-dictado"> Permitir el dictado por internet</label>
-        <p class="nota">Si el navegador no puede dictar en el propio ordenador, el dictado <strong>envía el audio
-          a Google (Chrome) o Microsoft (Edge)</strong>. Son datos de salud: actívalo solo si tu centro lo permite.
-          Sin esto, el paciente y tú podéis escribir.</p>
-        <label><input type="checkbox" id="internet-voces"> Permitir voces de internet para leer en voz alta</label>
-        <p class="nota">Algunas voces (sobre todo en árabe y chino) solo existen en la nube y envían el texto fuera.</p>
-      </fieldset>
 
-      <fieldset>
-        <legend>Frases rápidas</legend>
+        <p class="grupo-titulo">Leer en voz alta</p>
+        <label class="opcion interruptor"><span><b>Lo que se traduce para el paciente</b>
+            <span class="nota">Al escribirlo. Lo que se <strong>dicta</strong> con el micrófono se lee siempre.</span></span>
+          <input type="checkbox" id="leer-paciente" role="switch"></label>
+        <label class="opcion interruptor"><span><b>Lo que se traduce al español</b>
+            <span class="nota">Voces: el español, la que elijas en «Aa» (hombre o mujer); el árabe, de hombre; el chino, de mujer.</span></span>
+          <input type="checkbox" id="leer-profesional" role="switch"></label>
+
+        <p class="grupo-titulo">Servicios de internet <span class="grupo-nota">(desactivados por defecto)</span></p>
+        <label class="opcion interruptor"><span><b>Dictado por internet</b> <span class="sello nube">envía el audio</span>
+            <span class="nota">Si el navegador no puede dictar en el propio ordenador, el audio va a Google (Chrome) o
+              Microsoft (Edge). Son datos de salud: actívalo solo si tu centro lo permite. Sin esto, se puede escribir.</span></span>
+          <input type="checkbox" id="internet-dictado" role="switch"></label>
+        <label class="opcion interruptor"><span><b>Voces de internet</b> <span class="sello nube">envía el texto</span>
+            <span class="nota">Algunas voces del navegador (sobre todo en árabe y chino) solo existen en la nube.</span></span>
+          <input type="checkbox" id="internet-voces" role="switch"></label>
+      </div>
+
+      <div class="hoja-pestana" data-hoja="frases" role="tabpanel" hidden>
+        <p class="grupo-titulo">Frases que se envían con un clic</p>
         <ul id="lista-frases" class="lista-frases"></ul>
         <div class="fila-anadir">
           <input id="nueva-frase" type="text" placeholder="Nueva frase…">
           <button type="button" id="anadir-frase" class="boton secundario">Añadir</button>
           <button type="button" id="restaurar-frases" class="enlace">Restaurar las de fábrica</button>
         </div>
-      </fieldset>
+      </div>
 
-      <fieldset>
-        <legend>Este navegador</legend>
+      <div class="hoja-pestana" data-hoja="equipo" role="tabpanel" hidden>
+        <p class="grupo-titulo">Qué funciona en este ordenador</p>
         <ul id="diagnostico" class="diagnostico"></ul>
         <details class="ayuda-voces">
           <summary>¿Las voces suenan mal o falta alguna? Cómo instalar voces mejores (gratis)</summary>
@@ -144,9 +230,9 @@
             muy bien, pero son de internet: envían el texto a Microsoft.</p>
           <p>Después de instalar, cierra y vuelve a abrir el navegador.</p>
         </details>
-      </fieldset>
+      </div>
 
-      <p class="nota">La conversación solo está en esta pestaña: no se guarda en ningún sitio y se borra con
+      <p class="nota pie-nota">La conversación solo está en esta pestaña: no se guarda en ningún sitio y se borra con
         <em>Nueva conversación</em> o al cerrar la pestaña. Los ajustes y las frases se guardan en este navegador.</p>
 
       <div class="pie-dialogo"><button class="boton">Cerrar</button></div>

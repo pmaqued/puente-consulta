@@ -68,12 +68,23 @@ function iniciar() {
   select.value = paciente.id;
   select.addEventListener("change", () => cambiarIdioma(select.value));
 
-  $("#aviso-uso").hidden = ajustes.avisoOculto;
-  $("#aviso-uso .cerrar").addEventListener("click", () => {
-    $("#aviso-uso").hidden = true;
+  // Aviso de uso: se pliega a una línea (no desaparece); al pulsarlo plegado, se vuelve a abrir.
+  const aviso = $("#aviso-uso");
+  aviso.classList.toggle("plegado", ajustes.avisoOculto);
+  aviso.querySelector(".cerrar").addEventListener("click", (e) => {
+    e.stopPropagation();
+    aviso.classList.add("plegado");
     ajustes.avisoOculto = true;
     guardarAjustes();
   });
+  aviso.addEventListener("click", () => {
+    if (!aviso.classList.contains("plegado")) return;
+    aviso.classList.remove("plegado");
+    ajustes.avisoOculto = false;
+    guardarAjustes();
+  });
+
+  pintarVacia();
 
   $("#nueva").addEventListener("click", nuevaConversacion);
   $("#ver-frases").addEventListener("click", () => {
@@ -111,7 +122,10 @@ function iniciar() {
 // ---------- Tamaño de la letra ----------
 
 function prepararTamano() {
-  const aplicar = () => document.documentElement.style.setProperty("--escala", ajustes.escala);
+  const aplicar = () => {
+    document.documentElement.style.setProperty("--escala", ajustes.escala);
+    $("#letra-valor").textContent = `${Math.round(ajustes.escala * 100)} %`;
+  };
   const cambiar = (paso) => {
     ajustes.escala = Math.min(1.6, Math.max(0.8, Math.round((ajustes.escala + paso) * 10) / 10));
     aplicar();
@@ -147,9 +161,16 @@ function generoPara(idioma) {
 
 // ---------- Pantalla grande ----------
 
+let mensajeGrande = null; // { traduccion, destino } del mensaje que se ve en grande
+
 function prepararPantallaGrande() {
   const capa = $("#grande");
   capa.addEventListener("click", cerrarGrande);
+  $("#grande-cerrar").addEventListener("click", cerrarGrande);
+  $("#grande-leer").addEventListener("click", (e) => {
+    e.stopPropagation(); // que el clic no cierre la pantalla grande
+    if (mensajeGrande) leerYAvisar(mensajeGrande.traduccion, mensajeGrande.destino);
+  });
   $("#imprimir").addEventListener("click", (e) => {
     e.stopPropagation(); // que el clic no cierre la pantalla grande
     $("#grande-fecha").textContent = `Puente Consulta · ${new Date().toLocaleString("es-ES", {
@@ -161,7 +182,13 @@ function prepararPantallaGrande() {
   });
 }
 
-function abrirGrande(traduccion, original, destino, origen) {
+function abrirGrande(traduccion, original, destino, origen, hora = "") {
+  mensajeGrande = { traduccion, destino };
+  const etiqueta = $("#grande-etiqueta");
+  etiqueta.textContent = destino === PROFESIONAL ? "Para usted · Español" : `Para el paciente · ${destino.nativo}`;
+  etiqueta.classList.toggle("paciente", destino !== PROFESIONAL);
+  $("#grande-hora").textContent = hora;
+  $("#grande-leer").hidden = !hayVoz(destino);
   const t = $("#grande-traduccion");
   t.textContent = traduccion;
   t.lang = destino.traduccion;
@@ -258,6 +285,7 @@ async function comprobarIdioma({ conClic }) {
   listo = false;
   actualizarBotones();
   const id = paciente.id;
+  ocultarPreparacion();
   mostrarEstado("Comprobando el idioma…");
   const ida = [PROFESIONAL.traduccion, paciente.traduccion];
   const vuelta = [paciente.traduccion, PROFESIONAL.traduccion];
@@ -274,6 +302,7 @@ async function comprobarIdioma({ conClic }) {
     mostrarEstado(`El traductor de este navegador no admite ${enMinuscula(paciente.nombre)}.`, { error: true });
     return;
   }
+  if (a !== "available" || b !== "available") abrirPreparacion();
   if ((a !== "available" || b !== "available") && !conClic) {
     mostrarEstado(`Hay que descargar ${enMinuscula(paciente.nombre)} (solo la primera vez).`, {
       boton: ["Descargar", () => descargar(id)],
@@ -298,6 +327,7 @@ async function descargar(id) {
     const paso = `Descargando (${i + 1}/2, ${etiqueta})…`;
     let ultimoAvance = Date.now();
     mostrarEstado(paso, { progreso: 0 });
+    pasoPreparacion("traductor", { estado: "va", detalle: `${i + 1} de 2`, progreso: i / 2 });
     // Si en un rato no llega ningún avance, se avisa (pero se sigue esperando).
     const vigilante = setInterval(() => {
       if (paciente.id !== id) return clearInterval(vigilante);
@@ -310,12 +340,16 @@ async function descargar(id) {
     try {
       await preparar(origen, destino, (p) => {
         ultimoAvance = Date.now();
-        if (paciente.id === id) mostrarEstado(paso, { progreso: p });
+        if (paciente.id === id) {
+          mostrarEstado(paso, { progreso: p });
+          pasoPreparacion("traductor", { estado: "va", detalle: `${i + 1} de 2`, progreso: (i + p) / 2 });
+        }
       });
     } catch (e) {
       clearInterval(vigilante);
       if (paciente.id !== id) return;
       console.error(e);
+      pasoPreparacion("traductor", { estado: e?.name === "NotAllowedError" ? "espera" : "error", detalle: "" });
       if (e?.name === "NotAllowedError") {
         mostrarEstado(`Falta descargar ${etiqueta}. Pulsa para continuar.`, {
           boton: ["Continuar descarga", () => descargar(id)],
@@ -331,6 +365,7 @@ async function descargar(id) {
     if (paciente.id !== id) return;
   }
   listo = true;
+  pasoPreparacion("traductor", { estado: "listo", detalle: "listo" });
   mostrarEstado(esModoPrueba() ? "Modo de prueba: la «traducción» es falsa." : `Listo: ${paciente.nombre} ⇄ Español, en este ordenador.`);
   actualizarBotones();
   traducirTextosInterfaz();
@@ -344,12 +379,23 @@ async function descargar(id) {
  */
 let preparandoVoces = null;
 async function prepararVocesPuente() {
-  if (ajustes.motorVoz !== "puente" || esModoPrueba() || !listo) return;
+  if (!listo) return;
+  if (ajustes.motorVoz !== "puente" || esModoPrueba()) {
+    terminarPreparacion();
+    return;
+  }
   const id = paciente.id;
-  const voces = [vozPuente(PROFESIONAL.voz, generoPara(PROFESIONAL)), vozPuente(paciente.voz, generoPara(paciente))]
-    .filter(Boolean);
+  const voces = vocesPuenteNecesarias();
   const pendientes = [];
   for (const v of voces) if (!(await estaDescargada(v))) pendientes.push(v);
+  if (paciente.id !== id) return;
+  if (!pendientes.length) {
+    terminarPreparacion();
+  } else if ($("#preparacion").hidden) {
+    abrirPreparacion();
+    pasoPreparacion("traductor", { estado: "listo", detalle: "listo" });
+  }
+  for (const v of voces) if (!pendientes.includes(v)) pasoPreparacion(claveVoz(v), { estado: "listo", detalle: "lista" });
   const trabajo = (async () => {
     for (const [i, v] of voces.entries()) {
       const nueva = pendientes.includes(v);
@@ -358,10 +404,12 @@ async function prepararVocesPuente() {
           if (nueva && paciente.id === id) {
             mostrarEstado(`Descargando voces (${pendientes.indexOf(v) + 1}/${pendientes.length}, ${v.mb} MB, solo esta vez)…`,
               { progreso: p });
+            pasoPreparacion(claveVoz(v), { estado: "va", detalle: `${Math.round(p * v.mb)} de ${v.mb} MB`, progreso: p });
           }
         });
       } catch (e) {
         console.warn(e);
+        pasoPreparacion(claveVoz(v), { estado: "error", detalle: "no se pudo" });
         if (paciente.id === id) {
           mostrarEstado(`No se pudo descargar la voz ${v.nombre}: se usarán las del navegador.`, {
             error: true, boton: ["Reintentar", prepararVocesPuente],
@@ -369,8 +417,10 @@ async function prepararVocesPuente() {
         }
         return;
       }
+      if (paciente.id === id) pasoPreparacion(claveVoz(v), { estado: "listo", detalle: "lista" });
       if (i === voces.length - 1 && pendientes.length && paciente.id === id) {
         mostrarEstado(`Listo: ${paciente.nombre} ⇄ Español, con voces de Puente, en este ordenador.`);
+        terminarPreparacion();
       }
     }
   })();
@@ -378,9 +428,91 @@ async function prepararVocesPuente() {
   await trabajo;
 }
 
+// ---------- Tarjeta de preparación (la primera vez con un idioma) ----------
+// Muestra en el centro qué se está descargando: traductor y voces, cada uno con su avance.
+// Es solo una vista: la descarga la siguen haciendo descargar() y prepararVocesPuente().
+
+const claveVoz = (v) => `${v.id}#${v.hablante ?? 0}`;
+
+function vocesPuenteNecesarias() {
+  return [vozPuente(PROFESIONAL.voz, generoPara(PROFESIONAL)), vozPuente(paciente.voz, generoPara(paciente))]
+    .filter(Boolean);
+}
+
+function abrirPreparacion() {
+  const tarjeta = $("#preparacion");
+  $("#prep-titulo").textContent = `Preparando ${enMinuscula(paciente.nombre)}`;
+  const lista = $("#prep-lista");
+  lista.replaceChildren();
+  const anadir = (clave, texto, detalle) => {
+    const li = document.createElement("li");
+    li.dataset.clave = clave;
+    li.dataset.estado = "espera";
+    li.innerHTML = `<span class="prep-marca"><svg aria-hidden="true"><use href="#i-ok"/></svg></span>
+      <span class="prep-texto"></span><small class="prep-detalle"></small><span class="prep-barra"><i></i></span>`;
+    li.querySelector(".prep-texto").textContent = texto;
+    li.querySelector(".prep-detalle").textContent = detalle;
+    lista.append(li);
+  };
+  anadir("traductor", `Traductor ${enMinuscula(paciente.nombre)} ⇄ español`, "en espera");
+  if (ajustes.motorVoz === "puente" && !esModoPrueba()) {
+    for (const [idioma, v] of [[PROFESIONAL, vozPuente(PROFESIONAL.voz, generoPara(PROFESIONAL))],
+      [paciente, vozPuente(paciente.voz, generoPara(paciente))]]) {
+      if (!v) continue;
+      const genero = generoPara(idioma);
+      anadir(claveVoz(v), `Voz en ${enMinuscula(idioma.nombre)}${genero ? ` (${genero})` : ""}`, `${v.mb} MB · en espera`);
+    }
+  }
+  tarjeta.classList.remove("terminada");
+  tarjeta.hidden = false;
+  $("#prep-aviso").hidden = true;
+  $("#prep-acciones").replaceChildren();
+}
+
+function pasoPreparacion(clave, { estado, detalle, progreso = null }) {
+  const li = $(`#prep-lista li[data-clave="${CSS.escape(clave)}"]`);
+  if (!li) return;
+  li.dataset.estado = estado;
+  if (detalle !== undefined) li.querySelector(".prep-detalle").textContent = detalle;
+  li.querySelector(".prep-barra i").style.width = `${Math.round((progreso ?? (estado === "listo" ? 1 : 0)) * 100)}%`;
+}
+
+/** Los avisos y botones de la franja de estado (Descargar, Reintentar…) también salen en la tarjeta. */
+function reflejarEnPreparacion(texto, { error, boton }) {
+  if ($("#preparacion").hidden) return;
+  const aviso = $("#prep-aviso");
+  aviso.hidden = !error;
+  aviso.textContent = error ? texto : "";
+  const acciones = $("#prep-acciones");
+  acciones.replaceChildren();
+  if (boton) {
+    const b = document.createElement("button");
+    b.className = "boton";
+    b.textContent = boton[0];
+    b.addEventListener("click", boton[1]);
+    acciones.append(b);
+  }
+}
+
+function terminarPreparacion() {
+  const tarjeta = $("#preparacion");
+  if (tarjeta.hidden) return;
+  $("#prep-titulo").textContent = "Todo listo";
+  $("#prep-acciones").replaceChildren();
+  tarjeta.classList.add("terminada");
+  setTimeout(() => { if (tarjeta.classList.contains("terminada")) ocultarPreparacion(); }, 1800);
+}
+
+function ocultarPreparacion() {
+  const tarjeta = $("#preparacion");
+  tarjeta.hidden = true;
+  tarjeta.classList.remove("terminada");
+}
+
 // ---------- Estado de la barra ----------
 
 function mostrarEstado(texto, { error = false, progreso = null, boton = null } = {}) {
+  reflejarEnPreparacion(texto, { error, boton });
   const estado = $("#estado");
   estado.replaceChildren();
   const span = document.createElement("span");
@@ -435,6 +567,7 @@ async function enviar(lado, textoDado, dictado = false) {
 
 function crearBurbuja(lado, texto, origen) {
   $("#vacia")?.remove();
+  if (!$("#preparacion").hidden) $("#conversacion").prepend($("#preparacion"));
   const art = document.createElement("article");
   art.className = `mensaje ${lado}`;
   const hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
@@ -442,6 +575,7 @@ function crearBurbuja(lado, texto, origen) {
   const quien = document.createElement("div");
   quien.className = "quien";
   quien.textContent = `${lado === "paciente" ? "Paciente" : "Profesional"} · ${hora}`;
+  art.dataset.hora = hora;
 
   const pendiente = document.createElement("p");
   pendiente.className = "pendiente";
@@ -466,27 +600,36 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
   p.lang = destino.traduccion;
   p.dir = destino.dir;
   p.title = "Ver en grande";
-  p.addEventListener("click", () => abrirGrande(traduccion, original, destino, origen));
+  const verGrande = () => abrirGrande(traduccion, original, destino, origen, art.dataset.hora);
+  p.addEventListener("click", verGrande);
   art.querySelector(".pendiente").replaceWith(p);
 
-  const grande = document.createElement("button");
-  grande.className = "grande-boton";
-  grande.title = "Ver en grande (para leerlo de lejos)";
-  grande.textContent = "⛶";
-  grande.addEventListener("click", () => abrirGrande(traduccion, original, destino, origen));
-  art.querySelector(".quien").append(grande);
-
-  const hayVoz = (ajustes.motorVoz === "puente" && vozPuente(destino.voz, generoPara(destino)))
-    || vozPara(destino.voz, ajustes.internetVoces, generoPara(destino));
-  if (hayVoz) {
-    const b = document.createElement("button");
-    b.className = "leer";
-    b.title = "Leer en voz alta";
-    b.textContent = "🔊";
-    b.addEventListener("click", () => leerYAvisar(traduccion, destino));
-    art.querySelector(".quien").append(b);
+  const acciones = document.createElement("div");
+  acciones.className = "acciones-mensaje";
+  acciones.append(botonMensaje("i-grande", "Mostrar en grande", "Para que lo lea de lejos", verGrande));
+  if (hayVoz(destino)) {
+    acciones.append(botonMensaje("i-altavoz", "Repetir", "Leer otra vez en voz alta",
+      () => leerYAvisar(traduccion, destino)));
   }
+  art.append(acciones);
   art.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+/** ¿Hay alguna voz (de Puente o del navegador) para leer este idioma? */
+function hayVoz(idioma) {
+  return Boolean((ajustes.motorVoz === "puente" && vozPuente(idioma.voz, generoPara(idioma)))
+    || vozPara(idioma.voz, ajustes.internetVoces, generoPara(idioma)));
+}
+
+/** Botón pequeño con icono y texto, para debajo de cada mensaje. */
+function botonMensaje(icono, texto, titulo, alPulsar) {
+  const b = document.createElement("button");
+  b.className = "boton-mensaje";
+  b.title = titulo;
+  b.innerHTML = `<svg aria-hidden="true"><use href="#${icono}"/></svg>`;
+  b.append(texto);
+  b.addEventListener("click", alPulsar);
+  return b;
 }
 
 async function leerYAvisar(texto, idioma) {
@@ -497,17 +640,30 @@ async function leerYAvisar(texto, idioma) {
 function nuevaConversacion() {
   detenerDictado();
   callar();
-  const conversacion = $("#conversacion");
-  conversacion.replaceChildren();
-  const vacia = document.createElement("div");
-  vacia.id = "vacia";
-  vacia.className = "vacia";
-  vacia.innerHTML = `<p id="bienvenida-paciente" class="bienvenida-paciente"></p>
-    <p class="bienvenida-profesional">Esta pantalla traduce automáticamente. Hable despacio y con frases cortas.</p>`;
-  conversacion.append(vacia);
+  pintarVacia();
   $("#texto-paciente").value = "";
   $("#texto-profesional").value = "";
   aplicarIdiomaPaciente();
+}
+
+/** Pantalla de bienvenida: saludo, cómo se usa y unas frases para empezar. */
+function pintarVacia() {
+  const conversacion = $("#conversacion");
+  const tarjeta = $("#preparacion"); // la tarjeta de preparación vive dentro de la conversación
+  conversacion.replaceChildren($("#plantilla-vacia").content.cloneNode(true), tarjeta);
+  pintarFrasesInicio();
+}
+
+function pintarFrasesInicio() {
+  const cont = $("#frases-inicio");
+  if (!cont) return;
+  cont.replaceChildren();
+  for (const frase of ajustes.frases.slice(0, 3)) {
+    const b = document.createElement("button");
+    b.textContent = frase;
+    b.addEventListener("click", () => enviar("profesional", frase));
+    cont.append(b);
+  }
 }
 
 // ---------- Dictado ----------
@@ -599,6 +755,7 @@ function pintarFrases() {
     b.addEventListener("click", () => enviar("profesional", frase));
     cont.append(b);
   }
+  pintarFrasesInicio();
 
   const lista = $("#lista-frases");
   lista.replaceChildren();
@@ -622,8 +779,18 @@ function pintarFrases() {
 
 // ---------- Ajustes ----------
 
+function elegirPestana(nombre) {
+  for (const t of document.querySelectorAll("#ajustes .pestana")) {
+    t.setAttribute("aria-selected", String(t.dataset.pestana === nombre));
+  }
+  for (const h of document.querySelectorAll("#ajustes .hoja-pestana")) h.hidden = h.dataset.hoja !== nombre;
+}
+
 function prepararAjustes() {
-  $("#abrir-ajustes").addEventListener("click", abrirAjustes);
+  $("#abrir-ajustes").addEventListener("click", () => abrirAjustes());
+  for (const t of document.querySelectorAll("#ajustes .pestana")) {
+    t.addEventListener("click", () => elegirPestana(t.dataset.pestana));
+  }
   const casillas = {
     "#leer-paciente": "leerPaciente",
     "#leer-profesional": "leerProfesional",
@@ -669,7 +836,8 @@ function prepararAjustes() {
   });
 }
 
-async function abrirAjustes() {
+async function abrirAjustes(pestana = "voz") {
+  if (!$("#ajustes").open) elegirPestana(typeof pestana === "string" ? pestana : "voz");
   const lista = $("#diagnostico");
   lista.replaceChildren();
   const linea = (t) => {

@@ -5,6 +5,8 @@
 // del texto). Sirve para probar la página en navegadores sin la API.
 
 const MODO_PRUEBA = new URLSearchParams(location.search).has("prueba");
+// ?prueba=descarga: además simula que hay que descargar el idioma (para ver la tarjeta de preparación).
+const SIMULAR_DESCARGA = new URLSearchParams(location.search).get("prueba") === "descarga";
 
 const cache = new Map(); // "es>ar" -> traductor ya creado
 
@@ -22,7 +24,7 @@ export function esModoPrueba() {
  * traen a medias). Se espera como mucho 10 s para no dejar la página colgada sin avisar.
  */
 export async function disponibilidad(origen, destino) {
-  if (MODO_PRUEBA) return "available";
+  if (MODO_PRUEBA) return SIMULAR_DESCARGA && !cache.has(`${origen}>${destino}`) ? "downloadable" : "available";
   const limite = new Promise((resolver) => setTimeout(() => resolver("sin-respuesta"), 10_000));
   try {
     return await Promise.race([
@@ -45,6 +47,12 @@ export async function preparar(origen, destino, alProgresar = () => {}) {
 
   let traductor;
   if (MODO_PRUEBA) {
+    if (SIMULAR_DESCARGA) {
+      for (let p = 0; p <= 1; p += 0.1) {
+        alProgresar(p);
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
     traductor = { translate: async (texto) => `[${destino}] ${texto}` };
   } else {
     traductor = await self.Translator.create({
