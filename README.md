@@ -1,10 +1,11 @@
 # Puente Consulta
 
-Página web para **conversaciones cara a cara** traducidas, pensada para la atención administrativa en el
+Página web para **conversaciones cara a cara** traducidas, pensada para las consultas de medicina y enfermería del
 centro de salud (pacientes que hablan sobre todo árabe o chino). Sin instalar nada y sin coste.
 
-> **Aviso:** es una ayuda para la comunicación administrativa (citas, datos, indicaciones), no para
-> información clínica delicada. La traducción automática puede equivocarse.
+> **Aviso:** es una ayuda para la comunicación en consulta (preguntas sencillas, indicaciones, citas), no
+> para diagnósticos, tratamientos ni consentimientos: para eso, intérprete (Dualia, el servicio telefónico del
+> SERMAS). La traducción automática puede equivocarse.
 
 ## Cómo funciona
 
@@ -29,7 +30,7 @@ centro de salud (pacientes que hablan sobre todo árabe o chino). Sin instalar n
   del navegador, en el propio ordenador).
 - **Funciona sin conexión** una vez abierta y con los idiomas descargados, y se puede **instalar como app**
   (Chrome/Edge: menú ⋮ › *Instalar Puente Consulta*): se abre en su propia ventana, con su icono.
-- **Frases rápidas** para el profesional (¿Tiene cita?, tarjeta sanitaria…). Se editan en Ajustes.
+- **Frases rápidas** para el profesional (saludo, tarjeta sanitaria, «Túmbese en la camilla», nueva cita…). Se editan en Ajustes.
 - **Nueva conversación** lo borra todo. La conversación **no se guarda en ningún sitio**: solo vive en la
   pestaña. Los ajustes y las frases sí se guardan en el navegador.
 

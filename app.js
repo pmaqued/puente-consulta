@@ -704,7 +704,7 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
 
 /**
  * Escribe el texto marcando números, fechas y horas (10:00, 25/11/2026, 612 345 678…): es lo que más importa
- * en el mostrador y lo que más se equivoca al traducir. Así se comprueba de un vistazo en los dos idiomas.
+ * en la consulta y lo que más se equivoca al traducir. Así se comprueba de un vistazo en los dos idiomas.
  */
 const DATOS = /[0-9٠-٩۰-۹]+(?:[.,:/\-][0-9٠-٩۰-۹]+)*(?: [0-9٠-٩۰-۹]{2,3}(?![0-9٠-٩۰-۹]))*/g;
 function resaltarDatos(el, texto) {
@@ -1012,7 +1012,7 @@ function pintarHojaConversacion(elegidos) {
   }
   const pie = document.createElement("p");
   pie.className = "impreso-pie";
-  pie.textContent = "Traducido automáticamente con Puente Consulta. Ante cualquier duda, pregunte en el mostrador.";
+  pie.textContent = "Traducido automáticamente con Puente Consulta. Ante cualquier duda, pregunte en la consulta.";
   hoja.append(cab, tabla, pie);
 }
 

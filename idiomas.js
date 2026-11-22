@@ -79,15 +79,14 @@ export const RESPUESTAS = {
 
 // Temas de las frases rápidas de fábrica. Las que añada el profesional van a «Mías».
 export const TEMAS_FRASES = {
-  "Hola, buenos días. ¿En qué le puedo ayudar?": "Indicaciones",
-  "¿Tiene cita?": "Citas",
+  "Hola, buenos días. Pase y siéntese, por favor.": "Indicaciones",
   "¿Me deja su tarjeta sanitaria, por favor?": "Datos",
-  "¿Cuál es su nombre completo?": "Datos",
   "¿Cuál es su fecha de nacimiento?": "Datos",
   "¿Me da un número de teléfono?": "Datos",
-  "Espere en la sala, por favor. Le llamarán por su nombre.": "Indicaciones",
+  "Le voy a explorar. ¿Le parece bien?": "Indicaciones",
+  "Túmbese en la camilla, por favor.": "Indicaciones",
+  "Tiene que volver otro día. Le doy una cita nueva.": "Citas",
   "Le doy cita para el día que le escribo en este papel.": "Citas",
-  "Tiene que venir otro día. Le doy una cita nueva.": "Citas",
   "¿Puede venir alguien que hable español para ayudarle?": "Indicaciones",
   "No le he entendido. ¿Puede repetirlo más despacio?": "Indicaciones",
 };
@@ -96,15 +95,14 @@ export const temaDe = (frase) => TEMAS_FRASES[frase] ?? "Mías";
 
 // Frases rápidas del profesional (se pueden añadir y quitar desde la página; se guardan en el navegador).
 export const FRASES_POR_DEFECTO = [
-  "Hola, buenos días. ¿En qué le puedo ayudar?",
-  "¿Tiene cita?",
+  "Hola, buenos días. Pase y siéntese, por favor.",
   "¿Me deja su tarjeta sanitaria, por favor?",
-  "¿Cuál es su nombre completo?",
   "¿Cuál es su fecha de nacimiento?",
   "¿Me da un número de teléfono?",
-  "Espere en la sala, por favor. Le llamarán por su nombre.",
+  "Le voy a explorar. ¿Le parece bien?",
+  "Túmbese en la camilla, por favor.",
+  "Tiene que volver otro día. Le doy una cita nueva.",
   "Le doy cita para el día que le escribo en este papel.",
-  "Tiene que venir otro día. Le doy una cita nueva.",
   "¿Puede venir alguien que hable español para ayudarle?",
   "No le he entendido. ¿Puede repetirlo más despacio?",
 ];
