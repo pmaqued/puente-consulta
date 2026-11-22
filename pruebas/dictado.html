@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba de dictado sin internet · Puente Consulta</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --tinta:#1F2D3D; --suave:#4A5768; --papel:#F7F5F0; --azul:#2E67A8; --verde:#1F7566; --verde-claro:#E3F1EC;
+          --rojo:#A3461F; --rojo-claro:#FBE9E1; --ambar:#FFF1C9; --borde:#D9DEE5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--papel); color: var(--tinta); font: 17px/1.5 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  p { margin: 0 0 10px; color: var(--suave); }
+  .caja { background: #fff; border: 1px solid var(--borde); border-radius: 14px; padding: 20px 22px; margin-top: 18px; }
+  .paso { color: var(--verde); font-weight: 700; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { text-align: left; padding: 7px 8px; border-top: 1px solid var(--borde); vertical-align: top; }
+  th { font-size: 14px; color: var(--suave); border-top: 0; }
+  .ok { color: var(--verde); font-weight: 700; }
+  .mal { color: var(--rojo); font-weight: 700; }
+  .medio { color: #8A6400; font-weight: 700; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 11px 18px; cursor: pointer;
+           background: var(--azul); color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.sec { background: #fff; color: var(--azul); border: 1px solid var(--azul); }
+  button.grabando { background: var(--rojo); }
+  .fila { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  select { font: inherit; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--borde); background: #fff; }
+  progress { width: 100%; height: 14px; margin-top: 10px; }
+  #estado { margin-top: 10px; }
+  .texto { font-size: 19px; color: var(--tinta); }
+  .veredicto { padding: 12px 14px; border-radius: 10px; margin-top: 12px; font-weight: 600; }
+  .veredicto.ok { background: var(--verde-claro); }
+  .veredicto.mal { background: var(--rojo-claro); }
+  .veredicto.medio { background: var(--ambar); }
+  .aviso { background: var(--verde-claro); border-radius: 10px; padding: 12px 14px; color: var(--tinta); }
+  [dir="rtl"] { text-align: right; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Prueba de dictado sin internet</h1>
+  <p>Página de prueba de Puente Consulta. Comprueba si este ordenador puede pasar la voz a texto <b>dentro del
+    navegador</b>, con el modelo Whisper, sin enviar el audio a ningún sitio. No forma parte todavía de Puente
+    Consulta.</p>
+  <p class="aviso">La primera vez se descarga el modelo (unos 250–300 MB, una sola vez; queda guardado en este
+    navegador). Después, el audio <b>no sale del ordenador</b>: lo que se graba aquí no se envía ni se guarda.</p>
+
+  <section class="caja">
+    <div class="paso">Paso 1</div>
+    <h2>Este ordenador</h2>
+    <table id="equipo"><tr><td>Comprobando…</td></tr></table>
+    <div id="veredicto-equipo"></div>
+  </section>
+
+  <section class="caja">
+    <div class="paso">Paso 2</div>
+    <h2>Descargar y preparar el modelo</h2>
+    <div class="fila">
+      <select id="motor">
+        <option value="auto">Automático (tarjeta gráfica si se puede)</option>
+        <option value="cpu">Forzar solo el procesador (para comparar)</option>
+      </select>
+      <button id="preparar">Descargar y preparar</button>
+    </div>
+    <progress id="progreso" max="100" value="0" hidden></progress>
+    <p id="estado"></p>
+  </section>
+
+  <section class="caja">
+    <div class="paso">Paso 3</div>
+    <h2>Hablar y medir</h2>
+    <p>Elija el idioma, pulse «Grabar», diga una frase de consulta (5–10 segundos) y pulse «Parar». Se mide cuánto
+      tarda en aparecer el texto.</p>
+    <div class="fila">
+      <select id="idioma">
+        <option value="spanish">Español</option>
+        <option value="arabic">Árabe</option>
+        <option value="chinese">Chino</option>
+        <option value="english">Inglés</option>
+        <option value="french">Francés</option>
+        <option value="romanian">Rumano</option>
+      </select>
+      <button id="grabar" disabled>Grabar</button>
+    </div>
+    <p id="estado-grabar"></p>
+    <table id="resultados" hidden>
+      <tr><th>Idioma</th><th>Audio</th><th>Espera</th><th>Texto</th></tr>
+    </table>
+    <div id="veredicto"></div>
+  </section>
+
+  <section class="caja">
+    <div class="paso">Paso 4</div>
+    <h2>Enviar el resultado</h2>
+    <p>Copia un resumen (sin audio ni datos personales) para pegarlo en un mensaje o una nota.</p>
+    <div class="fila"><button class="sec" id="copiar">Copiar resultados</button><span id="copiado"></span></div>
+  </section>
+</main>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const LIB = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2";
+const MODELO = "onnx-community/whisper-small";
+const NOMBRES = { spanish: "Español", arabic: "Árabe", chinese: "Chino", english: "Inglés", french: "Francés", romanian: "Rumano" };
+
+const info = { navegador: "", nucleos: navigator.hardwareConcurrency || "?", memoria: navigator.deviceMemory || "?",
+  webgpu: "no", gpu: "", f16: false, motor: "", carga: null, preparar: null, pruebas: [] };
+
+// ---------- Paso 1: el equipo ----------
+function navegador() {
+  const m = navigator.userAgent.match(/Edg\/(\d+)/) || navigator.userAgent.match(/Chrome\/(\d+)/);
+  const nombre = /Edg\//.test(navigator.userAgent) ? "Edge" : /Chrome\//.test(navigator.userAgent) ? "Chrome" : "otro";
+  const so = /Windows/.test(navigator.userAgent) ? "Windows" : /Mac OS/.test(navigator.userAgent) ? "Mac" : "otro";
+  return `${nombre} ${m ? m[1] : "?"} en ${so}`;
+}
+
+async function comprobarEquipo() {
+  info.navegador = navegador();
+  if (navigator.gpu) {
+    try {
+      const adaptador = await navigator.gpu.requestAdapter();
+      if (adaptador) {
+        const a = adaptador.info || (adaptador.requestAdapterInfo ? await adaptador.requestAdapterInfo() : {});
+        info.gpu = [a.vendor, a.architecture, a.description, a.device].filter(Boolean).join(" · ") || "sin nombre";
+        info.f16 = adaptador.features.has("shader-f16");
+        info.webgpu = adaptador.isFallbackAdapter ? "solo por software" : "sí";
+      } else info.webgpu = "no (sin adaptador)";
+    } catch (e) { info.webgpu = "no (" + e.message + ")"; }
+  }
+  const clase = info.webgpu === "sí" ? "ok" : "mal";
+  $("#equipo").innerHTML = `
+    <tr><td>Navegador</td><td>${info.navegador}</td></tr>
+    <tr><td>Procesador</td><td>${info.nucleos} núcleos · memoria ≈ ${info.memoria} GB</td></tr>
+    <tr><td>Tarjeta gráfica para el navegador (WebGPU)</td><td class="${clase}">${info.webgpu}</td></tr>
+    <tr><td>Gráfica</td><td>${info.gpu || "—"}</td></tr>`;
+  $("#veredicto-equipo").innerHTML = info.webgpu === "sí"
+    ? `<div class="veredicto ok">Este navegador puede usar la tarjeta gráfica. Siga al paso 2 para medir la velocidad real.</div>`
+    : `<div class="veredicto mal">Este navegador no puede usar la tarjeta gráfica. Se puede probar con el procesador, pero
+       seguramente sea lento (varios segundos por frase). Merece la pena mirar <b>edge://gpu</b> por si está desactivado.</div>`;
+}
+
+// ---------- Paso 2: el modelo ----------
+let asr = null;
+
+async function preparar() {
+  $("#preparar").disabled = true;
+  $("#motor").disabled = true;
+  const progreso = $("#progreso");
+  progreso.hidden = false;
+  const conGPU = $("#motor").value === "auto" && info.webgpu === "sí";
+  info.motor = conGPU ? "tarjeta gráfica (WebGPU, q4)" : "procesador (WASM, q8)";
+  $("#estado").textContent = "Cargando la librería…";
+  const archivos = new Map();
+  try {
+    const { pipeline } = await import(LIB);
+    const t0 = performance.now();
+    asr = await pipeline("automatic-speech-recognition", MODELO, {
+      device: conGPU ? "webgpu" : "wasm",
+      dtype: conGPU ? "q4" : "q8",
+      progress_callback: (p) => {
+        if (p.status === "progress" && p.total) {
+          archivos.set(p.file, [p.loaded, p.total]);
+          let cargado = 0, total = 0;
+          for (const [l, t] of archivos.values()) { cargado += l; total += t; }
+          progreso.value = (100 * cargado) / total;
+          $("#estado").textContent = `Descargando el modelo: ${(cargado / 1e6).toFixed(0)} de ${(total / 1e6).toFixed(0)} MB…`;
+        }
+      },
+    });
+    info.carga = ((performance.now() - t0) / 1000).toFixed(1);
+    $("#estado").textContent = "Calentando (la primera vez siempre tarda más)…";
+    const t1 = performance.now();
+    await asr(new Float32Array(16000), { language: "spanish", task: "transcribe" });
+    info.preparar = ((performance.now() - t1) / 1000).toFixed(1);
+    progreso.value = 100;
+    $("#estado").innerHTML = `<span class="ok">Listo</span> con ${info.motor}. Descarga y carga: ${info.carga} s.`;
+    $("#grabar").disabled = false;
+  } catch (e) {
+    console.error(e);
+    $("#estado").innerHTML = `<span class="mal">No se ha podido preparar:</span> ${e.message || e}. ` +
+      "Si es un error de red, puede que la red del centro bloquee la descarga (cdn.jsdelivr.net o huggingface.co).";
+    info.error = String(e.message || e);
+    $("#preparar").disabled = false;
+    $("#motor").disabled = false;
+  }
+}
+
+// ---------- Paso 3: grabar y medir ----------
+let grabadora = null, trozos = [], flujo = null;
+
+async function grabar() {
+  const boton = $("#grabar");
+  if (grabadora) { grabadora.stop(); return; }
+  try {
+    flujo = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  } catch (e) {
+    $("#estado-grabar").innerHTML = `<span class="mal">Sin micrófono:</span> ${e.message}`;
+    return;
+  }
+  trozos = [];
+  grabadora = new MediaRecorder(flujo);
+  grabadora.ondataavailable = (e) => e.data.size && trozos.push(e.data);
+  grabadora.onstop = transcribir;
+  grabadora.start(250); // en trozos: así no se pierde audio al parar
+  boton.textContent = "Parar";
+  boton.classList.add("grabando");
+  $("#estado-grabar").textContent = "Escuchando… hable y pulse «Parar».";
+}
+
+async function transcribir() {
+  const boton = $("#grabar");
+  flujo.getTracks().forEach((t) => t.stop());
+  grabadora = null;
+  boton.textContent = "Grabar";
+  boton.classList.remove("grabando");
+  boton.disabled = true;
+  $("#estado-grabar").textContent = "Pasando a texto…";
+  const t0 = performance.now();
+  const ctx = new AudioContext({ sampleRate: 16000 });
+  const audio = (await ctx.decodeAudioData(await new Blob(trozos).arrayBuffer())).getChannelData(0);
+  ctx.close();
+  const idioma = $("#idioma").value;
+  const r = await asr(audio, { language: idioma, task: "transcribe", chunk_length_s: 30 });
+  const espera = (performance.now() - t0) / 1000;
+  const segundos = audio.length / 16000;
+  info.pruebas.push({ idioma: NOMBRES[idioma], audio: segundos.toFixed(1), espera: espera.toFixed(1), texto: r.text.trim() });
+  const fila = document.createElement("tr");
+  const rtl = idioma === "arabic" ? ' dir="rtl"' : "";
+  fila.innerHTML = `<td>${NOMBRES[idioma]}</td><td>${segundos.toFixed(1)} s</td><td>${espera.toFixed(1)} s</td><td class="texto"${rtl}></td>`;
+  fila.lastChild.textContent = r.text.trim() || "(nada)";
+  $("#resultados").append(fila);
+  $("#resultados").hidden = false;
+  $("#estado-grabar").textContent = "";
+  boton.disabled = false;
+  veredicto();
+}
+
+function veredicto() {
+  const esperas = info.pruebas.map((p) => Number(p.espera));
+  const media = esperas.reduce((a, b) => a + b, 0) / esperas.length;
+  const [clase, texto] = media <= 2 ? ["ok", "Rápido: se podría usar en consulta."]
+    : media <= 5 ? ["medio", "Usable, pero se nota la espera."]
+    : ["mal", "Demasiado lento para una conversación."];
+  info.media = media.toFixed(1);
+  $("#veredicto").innerHTML = `<div class="veredicto ${clase}">Espera media: ${media.toFixed(1)} s. ${texto}</div>`;
+}
+
+// ---------- Paso 4: copiar ----------
+async function copiar() {
+  const lineas = [
+    `Prueba de dictado (Whisper small) · ${new Date().toLocaleString("es-ES")}`,
+    `Navegador: ${info.navegador} · ${info.nucleos} núcleos · memoria ≈ ${info.memoria} GB`,
+    `WebGPU: ${info.webgpu} · Gráfica: ${info.gpu || "—"} · shader-f16: ${info.f16 ? "sí" : "no"}`,
+    `Motor: ${info.motor || "sin preparar"} · Carga: ${info.carga ?? "—"} s · Calentar: ${info.preparar ?? "—"} s`,
+    info.error ? `Error: ${info.error}` : "",
+    ...info.pruebas.map((p) => `- ${p.idioma}: ${p.audio} s de audio → ${p.espera} s de espera · «${p.texto}»`),
+    info.media ? `Espera media: ${info.media} s` : "",
+  ].filter(Boolean);
+  try {
+    await navigator.clipboard.writeText(lineas.join("\n"));
+    $("#copiado").textContent = "Copiado.";
+  } catch {
+    $("#copiado").textContent = "No se ha podido copiar; haga una foto de la pantalla.";
+  }
+}
+
+$("#preparar").addEventListener("click", preparar);
+$("#grabar").addEventListener("click", grabar);
+$("#copiar").addEventListener("click", copiar);
+comprobarEquipo();
+</script>
+</body>
+</html>
