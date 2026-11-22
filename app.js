@@ -2,7 +2,7 @@
 import { IDIOMAS, PROFESIONAL, TEXTOS_BASE, FRASES_POR_DEFECTO, buscarIdioma, RESPUESTAS, RESPUESTAS_ES, TEMAS, temaDe }
   from "./idiomas.js";
 import { hayTraductor, esModoPrueba, disponibilidad, preparar, traducir } from "./traductor.js";
-import { hayDictado, modoDictado, instalarDictado, dictar, vozPara, generoDe, leer, callar } from "./voz.js";
+import { hayDictado, modoDictado, instalarDictado, dictar, vozPara, generoDe, leer, callar, estaSonando } from "./voz.js";
 import { detectarIdioma } from "./detector.js";
 import { vozPuente, estaDescargada, prepararVoz } from "./voces-puente.js";
 
@@ -25,6 +25,9 @@ const AJUSTES_POR_DEFECTO = {
   motorVoz: "puente", // "puente" (voces Piper en la página) | "navegador"
   avisoOculto: false,
   imprimirCita: false, // al imprimir, añadir el recuadro Día / Hora / Consulta
+  altoContraste: false, // fondo negro y letra blanca/amarilla, para quien ve poco
+  verAtajos: true, // enseñar las teclas F1 / F2 junto a los micrófonos
+  guiaVista: false, // la guía de la primera vez ya se ha visto
   escala: 1, // tamaño de la letra de la conversación (0.8 – 1.6)
   frases: FRASES_POR_DEFECTO,
 };
@@ -110,6 +113,10 @@ function iniciar() {
   prepararGenero();
   prepararPantallaGrande();
   prepararSelectorIdioma();
+  prepararVista();
+  prepararImpresionConversacion();
+  prepararAtajos();
+  prepararGuia();
   // La pastilla de estado: si hay un aviso, al pulsarla se vuelve a ver.
   $("#estado-chip").addEventListener("click", () => {
     if ($("#estado-chip").dataset.tipo !== "ok" && $("#estado").childElementCount) $("#estado").hidden = false;
@@ -384,6 +391,7 @@ async function descargar(id) {
   }
   listo = true;
   pasoPreparacion("traductor", { estado: "listo", detalle: "listo" });
+  if (!ajustes.guiaVista) setTimeout(iniciarGuia, 700);
   mostrarEstado(esModoPrueba() ? "Modo de prueba: la «traducción» es falsa." : `Listo: ${paciente.nombre} ⇄ Español, en este ordenador.`,
     { listo: true });
   actualizarBotones();
@@ -619,7 +627,7 @@ async function enviar(lado, textoDado, dictado = false) {
     const traduccion = await traducir(texto, origen.traduccion, destino.traduccion);
     completarBurbuja(burbuja, traduccion, destino, texto, origen);
     const debeLeer = dictado || (deProfesional ? ajustes.leerPaciente : ajustes.leerProfesional);
-    if (debeLeer) leerYAvisar(traduccion, destino);
+    if (debeLeer) leerYAvisar(traduccion, destino, burbuja);
   } catch (e) {
     console.error(e);
     burbuja.querySelector(".pendiente").outerHTML = `<p class="error">No se pudo traducir.</p>`;
@@ -638,6 +646,16 @@ function crearBurbuja(lado, texto, origen) {
   quien.className = "quien";
   quien.textContent = `${lado === "paciente" ? "Paciente" : "Profesional"} · ${hora}`;
   art.dataset.hora = hora;
+  // Mientras se lee en voz alta este mensaje: ondas y botón Parar.
+  const lectura = document.createElement("span");
+  lectura.className = "lectura";
+  lectura.innerHTML = `<span class="ondas" aria-hidden="true"><i></i><i></i><i></i></span> leyendo en voz alta `;
+  const parar = document.createElement("button");
+  parar.className = "boton-parar";
+  parar.innerHTML = `<svg aria-hidden="true"><use href="#i-parar"/></svg>Parar`;
+  parar.addEventListener("click", () => { callar(); quitarLectura(); });
+  lectura.append(parar);
+  quien.append(lectura);
 
   const pendiente = document.createElement("p");
   pendiente.className = "pendiente";
@@ -663,6 +681,13 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
   p.dir = destino.dir;
   p.title = "Ver en grande";
   const verGrande = () => abrirGrande(traduccion, original, destino, origen, art.dataset.hora);
+  ultimoVerGrande = verGrande;
+  const haciaEspanol = destino === PROFESIONAL;
+  mensajes.push({
+    art, hora: art.dataset.hora, lado: art.classList.contains("paciente") ? "paciente" : "profesional",
+    espanol: haciaEspanol ? traduccion : original, otro: haciaEspanol ? original : traduccion,
+  });
+  $("#imprimir-conversacion").disabled = false;
   p.addEventListener("click", verGrande);
   art.querySelector(".pendiente").replaceWith(p);
 
@@ -671,7 +696,7 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
   acciones.append(botonMensaje("i-grande", "Mostrar en grande", "Para que lo lea de lejos", verGrande));
   if (hayVoz(destino)) {
     acciones.append(botonMensaje("i-altavoz", "Repetir", "Leer otra vez en voz alta",
-      () => leerYAvisar(traduccion, destino)));
+      () => leerYAvisar(traduccion, destino, art)));
   }
   art.append(acciones);
   art.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -713,14 +738,41 @@ function botonMensaje(icono, texto, titulo, alPulsar) {
   return b;
 }
 
-async function leerYAvisar(texto, idioma) {
+let mensajes = []; // los de esta conversación, para imprimirlos: { art, hora, lado, espanol, otro }
+let ultimoVerGrande = null; // F4: ver en grande el último mensaje
+let turnoLectura = 0;
+
+/** Lee en voz alta y, si es de un mensaje, lo marca mientras suena (con botón Parar). */
+async function leerYAvisar(texto, idioma, art = null) {
+  const mio = ++turnoLectura;
+  quitarLectura();
+  art?.classList.add("leyendo");
   const problema = await leer(texto, idioma.voz, ajustes.internetVoces, generoPara(idioma), ajustes.motorVoz);
-  if (problema) mostrarEstado(`${problema} Prueba la voz en ⚙︎ Ajustes.`, { error: true });
+  if (problema) {
+    if (mio === turnoLectura) quitarLectura();
+    mostrarEstado(`${problema} Prueba la voz en ⚙︎ Ajustes.`, { error: true });
+    return;
+  }
+  // Cuando deja de sonar (o se lee otra cosa), se quita la marca.
+  const vigilar = () => {
+    if (mio !== turnoLectura) return;
+    if (estaSonando()) setTimeout(vigilar, 250);
+    else quitarLectura();
+  };
+  setTimeout(vigilar, 250);
+}
+
+function quitarLectura() {
+  for (const m of document.querySelectorAll(".mensaje.leyendo")) m.classList.remove("leyendo");
 }
 
 function nuevaConversacion() {
   detenerDictado();
   callar();
+  quitarLectura();
+  mensajes = [];
+  ultimoVerGrande = null;
+  $("#imprimir-conversacion").disabled = true;
   pintarVacia();
   mostrarSelectorIdioma();
   $("#texto-paciente").value = "";
@@ -780,7 +832,7 @@ function responderRapido(texto, enEspanol) {
   detenerDictado();
   const burbuja = crearBurbuja("paciente", texto, paciente);
   completarBurbuja(burbuja, enEspanol, PROFESIONAL, texto, paciente);
-  if (ajustes.leerProfesional) leerYAvisar(enEspanol, PROFESIONAL);
+  if (ajustes.leerProfesional) leerYAvisar(enEspanol, PROFESIONAL, burbuja);
 }
 
 // ---------- Elegir idioma (al empezar una conversación nueva) ----------
@@ -823,6 +875,207 @@ function mostrarSelectorIdioma() {
   $("#seguir-idioma").textContent = `Seguir con ${enMinuscula(paciente.nombre)}`;
   $("#elegir-idioma").hidden = false;
 }
+
+// ---------- Menú «Aa»: alto contraste y atajos visibles ----------
+
+function prepararVista() {
+  const aplicar = () => {
+    document.documentElement.classList.toggle("contraste", ajustes.altoContraste);
+    document.documentElement.classList.toggle("con-atajos", ajustes.verAtajos);
+  };
+  for (const [sel, clave] of [["#alto-contraste", "altoContraste"], ["#ver-atajos", "verAtajos"]]) {
+    const c = $(sel);
+    c.checked = ajustes[clave];
+    c.addEventListener("change", () => {
+      ajustes[clave] = c.checked;
+      guardarAjustes();
+      aplicar();
+    });
+  }
+  aplicar();
+}
+
+// ---------- Atajos de teclado ----------
+// F1: habla el paciente · F2: habla el profesional · F4: el último mensaje en grande · Esc: parar.
+
+function prepararAtajos() {
+  document.addEventListener("keydown", (e) => {
+    if (guiaActiva || $("#ajustes").open || $("#dialogo-imprimir").open) return;
+    if (e.key === "F1" || e.key === "F2") {
+      e.preventDefault(); // F1 abre la ayuda del navegador
+      if (!$("#grande").hidden) return;
+      const lado = e.key === "F1" ? "paciente" : "profesional";
+      if (!$(`.microfono[data-lado="${lado}"]`).disabled) alternarDictado(lado);
+    } else if (e.key === "F4") {
+      e.preventDefault();
+      if ($("#grande").hidden) ultimoVerGrande?.();
+    } else if (e.key === "Escape" && $("#grande").hidden) {
+      callar();
+      quitarLectura();
+      detenerDictado();
+    }
+  });
+}
+
+// ---------- Imprimir la conversación (eligiendo los mensajes) ----------
+
+function prepararImpresionConversacion() {
+  const dialogo = $("#dialogo-imprimir");
+  $("#imprimir-conversacion").disabled = true;
+  $("#imprimir-conversacion").addEventListener("click", () => {
+    pintarListaImprimir();
+    dialogo.showModal();
+  });
+  const marcar = (valor) => {
+    for (const c of dialogo.querySelectorAll("#lista-imprimir input")) c.checked = valor;
+    contarImprimir();
+  };
+  $("#marcar-todos").addEventListener("click", () => marcar(true));
+  $("#marcar-ninguno").addEventListener("click", () => marcar(false));
+  $("#lista-imprimir").addEventListener("change", contarImprimir);
+  $("#hacer-imprimir").addEventListener("click", () => {
+    const elegidos = [...dialogo.querySelectorAll("#lista-imprimir input")]
+      .filter((c) => c.checked).map((c) => mensajes[Number(c.value)]);
+    if (!elegidos.length) return;
+    pintarHojaConversacion(elegidos);
+    dialogo.close();
+    document.body.classList.add("imprimiendo-conversacion");
+    window.print();
+  });
+  window.addEventListener("afterprint", () => document.body.classList.remove("imprimiendo-conversacion"));
+}
+
+function pintarListaImprimir() {
+  const lista = $("#lista-imprimir");
+  lista.replaceChildren();
+  mensajes.forEach((m, i) => {
+    const li = document.createElement("li");
+    li.className = m.lado;
+    const label = document.createElement("label");
+    const c = document.createElement("input");
+    c.type = "checkbox";
+    c.value = String(i);
+    c.checked = true;
+    const quien = document.createElement("span");
+    quien.className = "imp-quien";
+    quien.textContent = `${m.hora} · ${m.lado === "paciente" ? "Paciente" : "Profesional"}`;
+    const textos = document.createElement("span");
+    textos.className = "imp-textos";
+    const es = document.createElement("b");
+    es.textContent = m.espanol;
+    const otro = document.createElement("span");
+    otro.textContent = m.otro;
+    otro.lang = paciente.traduccion;
+    otro.dir = paciente.dir;
+    textos.append(es, otro);
+    label.append(c, quien, textos);
+    li.append(label);
+    lista.append(li);
+  });
+  contarImprimir();
+}
+
+function contarImprimir() {
+  const todas = [...document.querySelectorAll("#lista-imprimir input")];
+  const n = todas.filter((c) => c.checked).length;
+  $("#imprimir-cuenta").textContent = `${n} de ${todas.length} mensajes`;
+  $("#hacer-imprimir").disabled = n === 0;
+}
+
+function pintarHojaConversacion(elegidos) {
+  const hoja = $("#hoja-conversacion");
+  hoja.replaceChildren();
+  const cab = document.createElement("div");
+  cab.className = "impreso-cabecera";
+  cab.innerHTML = `<img src="icono-512.png" alt="" width="40" height="40">
+    <span><b>Centro de salud</b><br>Resumen de la conversación</span><span class="impreso-fecha"></span>`;
+  cab.querySelector(".impreso-fecha").textContent =
+    new Date().toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" });
+  const tabla = document.createElement("table");
+  const thead = tabla.createTHead().insertRow();
+  for (const [texto, lang, dir] of [["Hora", "es", "ltr"], ["Español", "es", "ltr"], [paciente.nativo, paciente.traduccion, paciente.dir]]) {
+    const th = document.createElement("th");
+    th.textContent = texto;
+    th.lang = lang;
+    th.dir = dir;
+    thead.append(th);
+  }
+  const cuerpo = tabla.createTBody();
+  for (const m of elegidos) {
+    const fila = cuerpo.insertRow();
+    fila.insertCell().textContent = `${m.hora} · ${m.lado === "paciente" ? "Pac." : "Prof."}`;
+    resaltarDatos(fila.insertCell(), m.espanol);
+    const otro = fila.insertCell();
+    resaltarDatos(otro, m.otro);
+    otro.lang = paciente.traduccion;
+    otro.dir = paciente.dir;
+  }
+  const pie = document.createElement("p");
+  pie.className = "impreso-pie";
+  pie.textContent = "Traducido automáticamente con Puente Consulta. Ante cualquier duda, pregunte en el mostrador.";
+  hoja.append(cab, tabla, pie);
+}
+
+// ---------- Guía de la primera vez ----------
+
+let guiaActiva = false;
+const PASOS_GUIA = [
+  { sel: ".idioma-paciente", titulo: "1 · El idioma del paciente",
+    texto: "Elíjalo aquí. Al empezar una conversación nueva, el paciente también puede señalarlo él mismo." },
+  { sel: "#panel-profesional .microfono", titulo: "2 · Pulse y hable",
+    texto: "Pulse, hable, y al terminar se traduce y se lee en voz alta. El paciente tiene el suyo a la izquierda, y botones de Sí / No." },
+  { sel: ".pasos li:nth-child(3)", otro: "#conversacion", titulo: "3 · Enséñeselo",
+    texto: "Cada mensaje tiene «Mostrar en grande» para que lo lea de lejos, y se puede imprimir. Atajos: F1 paciente, F2 usted, F4 en grande." },
+];
+
+function prepararGuia() {
+  let paso = 0;
+  const pintar = () => {
+    const p = PASOS_GUIA[paso];
+    const destino = $(p.sel) ?? $(p.otro);
+    const r = destino.getBoundingClientRect();
+    const foco = $("#guia .guia-foco");
+    Object.assign(foco.style, { left: `${r.left - 6}px`, top: `${r.top - 6}px`, width: `${r.width + 12}px`, height: `${r.height + 12}px` });
+    $("#guia-titulo").textContent = p.titulo;
+    $("#guia-texto").textContent = p.texto;
+    $("#guia-paso").textContent = `${paso + 1} de ${PASOS_GUIA.length}`;
+    $("#guia-siguiente").textContent = paso === PASOS_GUIA.length - 1 ? "Entendido" : "Siguiente";
+    const globo = $("#guia .guia-globo");
+    const ancho = 320;
+    const izquierda = Math.min(Math.max(16, r.left + r.width / 2 - ancho / 2), innerWidth - ancho - 16);
+    const abajo = r.bottom + 200 < innerHeight;
+    globo.classList.toggle("arriba", !abajo);
+    Object.assign(globo.style, { left: `${izquierda}px`, width: `${ancho}px`,
+      top: abajo ? `${r.bottom + 16}px` : "auto", bottom: abajo ? "auto" : `${innerHeight - r.top + 16}px` });
+    globo.style.setProperty("--flecha", `${Math.min(Math.max(20, r.left + r.width / 2 - izquierda), ancho - 20)}px`);
+  };
+  const terminar = () => {
+    $("#guia").hidden = true;
+    guiaActiva = false;
+    ajustes.guiaVista = true;
+    guardarAjustes();
+  };
+  $("#guia-saltar").addEventListener("click", terminar);
+  $("#guia-siguiente").addEventListener("click", () => {
+    if (paso === PASOS_GUIA.length - 1) return terminar();
+    paso += 1;
+    pintar();
+  });
+  document.addEventListener("keydown", (e) => { if (guiaActiva && e.key === "Escape") terminar(); });
+  window.addEventListener("resize", () => { if (guiaActiva) pintar(); });
+  $("#repetir-guia").addEventListener("click", () => {
+    $("#ajustes").close();
+    iniciarGuia();
+  });
+  iniciarGuia = () => {
+    if (guiaActiva || !$("#sin-soporte").hidden) return;
+    paso = 0;
+    guiaActiva = true;
+    $("#guia").hidden = false;
+    pintar();
+  };
+}
+let iniciarGuia = () => {};
 
 // ---------- Dictado ----------
 
@@ -963,8 +1216,32 @@ function elegirPestana(nombre) {
   for (const h of document.querySelectorAll("#ajustes .hoja-pestana")) h.hidden = h.dataset.hoja !== nombre;
 }
 
+let informe = []; // líneas del semáforo, para «Copiar informe»
+
+/** Texto para mandar a informática si algo no funciona en un equipo. */
+async function copiarInforme() {
+  const texto = [
+    "Puente Consulta · informe del equipo",
+    new Date().toLocaleString("es-ES"),
+    `${location.origin}${location.pathname}`,
+    "",
+    ...informe,
+    "",
+    `Navegador completo: ${navigator.userAgent}`,
+  ].join("\n");
+  const boton = $("#copiar-informe");
+  try {
+    await navigator.clipboard.writeText(texto);
+    boton.textContent = "✔ Copiado: pégalo en un correo o en Teams";
+  } catch {
+    boton.textContent = "No se pudo copiar";
+  }
+  setTimeout(() => { boton.textContent = "Copiar informe"; }, 4000);
+}
+
 function prepararAjustes() {
   $("#abrir-ajustes").addEventListener("click", () => abrirAjustes());
+  $("#copiar-informe").addEventListener("click", copiarInforme);
   for (const t of document.querySelectorAll("#ajustes .pestana")) {
     t.addEventListener("click", () => elegirPestana(t.dataset.pestana));
   }
@@ -1017,46 +1294,82 @@ async function abrirAjustes(pestana = "voz") {
   if (!$("#ajustes").open) elegirPestana(typeof pestana === "string" ? pestana : "voz");
   const lista = $("#diagnostico");
   lista.replaceChildren();
-  const linea = (t) => {
+  informe = [];
+  /** Una fila del semáforo: estado "ok" (verde), "med" (ámbar, funciona con límites) o "mal" (rojo). */
+  const fila = (estado, titulo, detalle) => {
     const li = document.createElement("li");
-    li.textContent = t;
+    li.className = `semaforo-${estado}`;
+    const punto = document.createElement("span");
+    punto.className = "punto";
+    const texto = document.createElement("span");
+    texto.className = "semaforo-texto";
+    const b = document.createElement("b");
+    b.textContent = titulo;
+    const d = document.createElement("span");
+    d.textContent = detalle;
+    texto.append(b, d);
+    li.append(punto, texto);
     lista.append(li);
+    informe.push(`${{ ok: "✔", med: "⚠", mal: "✘" }[estado]} ${titulo}: ${detalle}`);
     return li;
   };
-  linea(esModoPrueba() ? "Traductor: MODO DE PRUEBA (traducción falsa). Quita «?prueba» de la dirección."
-    : hayTraductor() ? "Traductor integrado: sí (traduce en este ordenador)." : "Traductor integrado: no.");
+
+  const version = navigator.userAgent.match(NAVEGADOR === "Edge" ? /\bEdg\/(\d+)/ : /\bChrome\/(\d+)/)?.[1];
+  const minima = NAVEGADOR === "Edge" ? 148 : 138;
+  fila(version && Number(version) >= minima ? "ok" : "mal", "Navegador",
+    `${NAVEGADOR === "otro" ? "no es Chrome ni Edge" : `${NAVEGADOR} ${version ?? "?"}`}` +
+    (version && Number(version) < minima ? ` (hace falta la ${minima} o posterior: actualízalo)` : ""));
+
+  if (esModoPrueba()) fila("med", "Traductor", "modo de prueba (traducción falsa): quita «?prueba» de la dirección");
+  else if (!hayTraductor()) fila("mal", "Traductor", "este navegador no lo tiene");
+  else if (listo) fila("ok", "Traductor", `${enMinuscula(paciente.nombre)} ⇄ español, en este equipo`);
+  else fila("med", "Traductor", `falta descargar ${enMinuscula(paciente.nombre)} (botón Descargar)`);
+
+  let micro = "prompt";
+  try {
+    micro = (await navigator.permissions.query({ name: "microphone" })).state;
+  } catch { micro = "?"; }
+  fila({ granted: "ok", prompt: "med", denied: "mal" }[micro] ?? "med", "Micrófono", {
+    granted: "permitido",
+    prompt: "lo pedirá la primera vez que se pulse el micrófono",
+    denied: "bloqueado: pulsa el candado de la barra de direcciones › Micrófono › Permitir, y recarga",
+  }[micro] ?? "no se puede comprobar en este navegador");
+
   if (!hayDictado()) {
-    linea("Dictado por voz: no disponible en este navegador.");
+    fila("mal", "Dictado", "este navegador no tiene dictado por voz: se puede escribir");
   } else {
     for (const idioma of [PROFESIONAL, paciente]) {
       const modo = await modoPara(idioma.voz);
-      const texto = { local: "en este ordenador", descargable: "en este ordenador (tras descargarlo)",
-        internet: "solo por internet", no: "no disponible" }[modo];
-      linea(`Dictado en ${enMinuscula(idioma.nombre)}: ${texto}.`);
+      const [estado, texto] = {
+        local: ["ok", "en este equipo"],
+        descargable: ["ok", "en este equipo (se descarga al usarlo)"],
+        internet: ajustes.internetDictado ? ["med", "por internet (permitido): el audio sale del equipo"]
+          : ["med", "solo por internet, y está desactivado: se puede escribir"],
+        no: ["mal", "no disponible: se puede escribir"],
+      }[modo];
+      fila(estado, `Dictado en ${enMinuscula(idioma.nombre)}`, texto);
     }
   }
-  linea(`Navegador: ${NAVEGADOR}.${NAVEGADOR === "Edge" ? " Puedes usar sus voces «Natural» eligiendo «Voces del navegador» y permitiendo las voces de internet." : ""}`);
+
   for (const idioma of [PROFESIONAL, paciente]) {
     const genero = generoPara(idioma);
     const puente = vozPuente(idioma.voz, genero);
     const elegida = vozPara(idioma.voz, ajustes.internetVoces, genero);
     const nube = vozPara(idioma.voz, true, genero);
-    let texto = `Voz en ${enMinuscula(idioma.nombre)}${genero ? ` (de ${genero})` : ""}: `;
+    const titulo = `Voz en ${enMinuscula(idioma.nombre)}${genero ? ` (${genero})` : ""}`;
+    let li;
     if (ajustes.motorVoz === "puente" && puente) {
-      texto += `de Puente, ${puente.nombre}`;
-      texto += (await estaDescargada(puente)) ? " (descargada)." : ` (se descarga al usarla, ${puente.mb} MB).`;
-      if (elegida) texto += ` Si falla: ${elegida.name}.`;
+      const descargada = await estaDescargada(puente);
+      li = fila(descargada ? "ok" : "med", titulo, `de Puente, ${puente.nombre}` +
+        (descargada ? ", descargada" : `, se descarga al usarla (${puente.mb} MB)`) + (elegida ? `. Si falla: ${elegida.name}` : ""));
+    } else if (elegida) {
+      const g = generoDe(elegida);
+      li = fila(elegida.localService ? "ok" : "med", titulo, `${elegida.name}${elegida.localService ? "" : " (de internet)"}` +
+        (genero && g !== genero ? `; no hay voz de ${genero}${g ? `, se usa una de ${g}` : ""}` : ""));
     } else {
-      if (ajustes.motorVoz === "puente") texto += "no hay voz de Puente para este idioma; ";
-      if (elegida) {
-        texto += `${elegida.name}${elegida.localService ? "" : " (de internet)"}.`;
-        const g = generoDe(elegida);
-        if (genero && g !== genero) texto += ` No hay voz de ${genero} instalada${g ? `: se usa una de ${g}` : ""}.`;
-      } else {
-        texto += nube ? `solo hay de internet (${nube.name}); permítelas arriba para usarla.` : "no hay ninguna instalada.";
-      }
+      li = fila("mal", titulo, nube ? `solo hay de internet (${nube.name}): permítelas en la pestaña Voz`
+        : "no hay ninguna instalada");
     }
-    const li = linea(texto);
     if ((ajustes.motorVoz === "puente" && puente) || elegida) {
       const probar = document.createElement("button");
       probar.type = "button";
@@ -1081,7 +1394,7 @@ async function abrirAjustes(pestana = "voz") {
           probar.disabled = false;
         }
       });
-      li.append(" ", probar);
+      li.append(probar);
     }
   }
   if (!$("#ajustes").open) $("#ajustes").showModal();

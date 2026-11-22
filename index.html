@@ -46,6 +46,8 @@
       <span id="estado-chip" class="chip-estado" hidden></span>
       <button id="nueva" class="boton secundario" title="Borra la conversación de la pantalla">
         <svg class="icono-svg" aria-hidden="true"><use href="#i-mas"/></svg>Nueva conversación</button>
+      <button id="imprimir-conversacion" class="boton icono redondo" title="Imprimir la conversación (eligiendo los mensajes)"
+        aria-label="Imprimir la conversación"><svg aria-hidden="true"><use href="#i-imprimir"/></svg></button>
       <button id="abrir-vista" class="boton icono redondo vista" popovertarget="menu-vista"
         title="Voz y tamaño de letra" aria-label="Voz y tamaño de letra">Aa</button>
       <button id="abrir-ajustes" class="boton icono redondo" title="Ajustes" aria-label="Ajustes">
@@ -70,6 +72,10 @@
       <span id="letra-valor" class="valor">100 %</span>
       <button id="letra-mas" class="boton icono" title="Letra más grande">A+</button>
     </div>
+    <label class="menu-interruptor interruptor"><span>Alto contraste<small>Fondo negro y letra grande y clara</small></span>
+      <input type="checkbox" id="alto-contraste" role="switch"></label>
+    <label class="menu-interruptor interruptor"><span>Ver atajos de teclado<small>F1 paciente · F2 usted · F4 en grande · Esc parar</small></span>
+      <input type="checkbox" id="ver-atajos" role="switch"></label>
   </div>
 
   <div id="aviso-uso" class="aviso" role="note">
@@ -127,6 +133,7 @@
       <button class="microfono" data-lado="paciente">
         <span class="circulo"><svg class="i-hablar"><use href="#i-mic"/></svg><svg class="i-parar"><use href="#i-parar"/></svg></span>
         <span class="texto-boton" id="hablar-paciente"></span>
+        <kbd class="tecla" title="Atajo de teclado">F1</kbd>
       </button>
       <div class="columna">
         <div class="titulo-panel"><span class="quien">Paciente</span> · <span id="nombre-paciente"></span></div>
@@ -142,6 +149,7 @@
       <button class="microfono" data-lado="profesional">
         <span class="circulo"><svg class="i-hablar"><use href="#i-mic"/></svg><svg class="i-parar"><use href="#i-parar"/></svg></span>
         <span class="texto-boton">Pulse y hable</span>
+        <kbd class="tecla" title="Atajo de teclado">F2</kbd>
       </button>
       <div class="columna">
         <div class="titulo-panel">
@@ -243,7 +251,12 @@
 
       <div class="hoja-pestana" data-hoja="equipo" role="tabpanel" hidden>
         <p class="grupo-titulo">Qué funciona en este ordenador</p>
-        <ul id="diagnostico" class="diagnostico"></ul>
+        <ul id="diagnostico" class="diagnostico semaforo"></ul>
+        <div class="informe">
+          <span class="nota">Si algo no funciona, copia este resumen y mándaselo a informática por correo o Teams.</span>
+          <button type="button" id="copiar-informe" class="boton secundario">Copiar informe</button>
+        </div>
+        <p><button type="button" id="repetir-guia" class="enlace">Ver otra vez la guía de la primera vez</button></p>
         <details class="ayuda-voces">
           <summary>¿Las voces suenan mal o falta alguna? Cómo instalar voces mejores (gratis)</summary>
           <p><strong>Mac:</strong> Ajustes del Sistema › Accesibilidad › Contenido leído › Voz del sistema ›
@@ -262,6 +275,46 @@
       <div class="pie-dialogo"><button class="boton">Cerrar</button></div>
     </form>
   </dialog>
+
+  <!-- Imprimir la conversación: se eligen los mensajes -->
+  <dialog id="dialogo-imprimir" class="dialogo-imprimir">
+    <form method="dialog">
+      <div class="dialogo-cabecera">
+        <h2>Imprimir la conversación</h2>
+        <button class="boton icono redondo" value="cerrar" aria-label="Cerrar" title="Cerrar">
+          <svg aria-hidden="true"><use href="#i-cerrar"/></svg></button>
+      </div>
+      <p class="nota imprimir-nota">Marca los mensajes que quieres imprimir. Salen en dos columnas: en español y en el idioma
+        del paciente.</p>
+      <div class="imprimir-herramientas">
+        <button type="button" id="marcar-todos" class="enlace">Marcar todos</button>
+        <button type="button" id="marcar-ninguno" class="enlace">Ninguno</button>
+        <span id="imprimir-cuenta" class="imprimir-cuenta"></span>
+      </div>
+      <ul id="lista-imprimir" class="lista-imprimir"></ul>
+      <div class="pie-dialogo">
+        <button type="button" id="hacer-imprimir" class="boton">
+          <svg class="icono-svg" aria-hidden="true"><use href="#i-imprimir"/></svg>Imprimir</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Hoja con la conversación (solo se ve al imprimir) -->
+  <section id="hoja-conversacion" class="hoja-conversacion" aria-hidden="true"></section>
+
+  <!-- Guía de la primera vez -->
+  <div id="guia" class="guia" hidden>
+    <div class="guia-foco"></div>
+    <div class="guia-globo" role="dialog" aria-labelledby="guia-titulo">
+      <b id="guia-titulo"></b>
+      <p id="guia-texto"></p>
+      <div class="guia-pie">
+        <button id="guia-saltar" class="enlace" type="button">Saltar guía</button>
+        <span id="guia-paso"></span>
+        <button id="guia-siguiente" class="boton" type="button"></button>
+      </div>
+    </div>
+  </div>
 
   <div id="sin-soporte" class="sin-soporte" hidden>
     <div>

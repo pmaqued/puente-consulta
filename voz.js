@@ -89,7 +89,7 @@ export function dictar(idiomaVoz, { local, alTexto, alTerminar, alError }) {
 //   - "navegador": las voces que tenga el navegador (sistema, Google, o las «Natural» de Edge).
 // Si la voz de Puente falla o no hay para ese idioma, se usa la del navegador.
 
-import { vozPuente, decir, parar as pararPuente } from "./voces-puente.js";
+import { vozPuente, decir, parar as pararPuente, sonando as sonandoPuente } from "./voces-puente.js";
 
 let voces = [];
 function cargarVoces() {
@@ -232,6 +232,11 @@ export async function leer(texto, idiomaVoz, permitirInternet, genero = null, mo
   if (segundo === "ok") return null;
   speechSynthesis.cancel();
   return `No se pudo leer en voz alta con la voz «${voz.name}» (${primero}).`;
+}
+
+/** ¿Se está leyendo algo en voz alta ahora mismo (voz de Puente o del navegador)? */
+export function estaSonando() {
+  return Boolean(self.speechSynthesis?.speaking) || sonandoPuente();
 }
 
 export function callar() {

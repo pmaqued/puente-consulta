@@ -435,6 +435,116 @@ svg { width: 20px; height: 20px; flex: none; }
 .con-cita { font-size: 14px; color: var(--suave); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; align-self: center; }
 .con-cita input { accent-color: var(--azul); width: 16px; height: 16px; margin: 0; }
 
+/* ---- Vuelta 4 ---- */
+
+/* Mensaje que se está leyendo en voz alta */
+.mensaje .lectura { display: none; align-items: center; gap: 6px; margin-inline-start: auto; color: var(--azul-oscuro); font-weight: 600; }
+.mensaje .quien { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mensaje.leyendo { border-color: var(--azul); box-shadow: 0 0 0 3px color-mix(in srgb, var(--azul) 22%, transparent), var(--sombra); }
+.mensaje.leyendo .lectura { display: inline-flex; }
+.ondas { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; }
+.ondas i { width: 3px; border-radius: 2px; background: var(--azul); animation: onda 0.9s ease-in-out infinite; }
+.ondas i:nth-child(2) { animation-delay: 0.15s; } .ondas i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes onda { 0%, 100% { height: 4px; } 50% { height: 12px; } }
+.boton-parar { font: inherit; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  border: none; border-radius: 99px; padding: 3px 10px 3px 8px; background: var(--azul); color: white; }
+.boton-parar svg { width: 11px; height: 11px; }
+.boton-parar:hover { background: var(--azul-oscuro); }
+
+/* Semáforo de «Este ordenador» */
+.diagnostico.semaforo { list-style: none; padding: 0; border: none; background: none; display: grid; gap: 6px; margin: 0; }
+.semaforo li { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; margin: 0; padding: 9px 12px;
+  border-radius: 12px; background: var(--superficie-2); border: 1px solid var(--borde-suave); font-size: 14px; }
+.semaforo .punto { width: 14px; height: 14px; border-radius: 50%; }
+.semaforo-ok .punto { background: var(--verde); }
+.semaforo-med .punto { background: #e0a43a; }
+.semaforo-mal .punto { background: var(--rojo); }
+.semaforo-mal { border-color: color-mix(in srgb, var(--rojo) 35%, white) !important; }
+.semaforo-texto { display: flex; flex-direction: column; line-height: 1.35; }
+.semaforo-texto span { color: var(--suave); font-size: 13px; }
+.informe { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 4px; }
+.informe .nota { margin: 0; }
+
+/* Teclas de los atajos */
+.tecla { display: none; font: 700 11px/1 var(--letra); padding: 3px 6px; border-radius: 5px; border: 1px solid var(--borde);
+  border-bottom-width: 2px; background: var(--superficie); color: var(--suave); }
+.con-atajos .tecla { display: inline-block; }
+
+/* Menú «Aa»: interruptores */
+.menu-interruptor { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--borde-suave);
+  cursor: pointer; font-size: 14.5px; font-weight: 600; }
+.menu-interruptor > span { flex: 1; }
+.menu-interruptor small { display: block; font-size: 12px; font-weight: 400; color: var(--suave); }
+.menu-vista .segmentado:last-of-type { margin-bottom: 0; }
+
+/* Diálogo de imprimir la conversación */
+.dialogo-imprimir form { height: min(620px, 88vh); }
+.imprimir-nota { margin: 0 24px 6px; }
+.imprimir-herramientas { display: flex; gap: 6px; align-items: center; padding: 0 20px 8px; }
+.imprimir-cuenta { margin-left: auto; font-size: 13.5px; color: var(--suave); font-variant-numeric: tabular-nums; }
+.lista-imprimir { list-style: none; margin: 0 24px; padding: 0; flex: 1; overflow-y: auto; border: 1px solid var(--borde-suave); border-radius: 14px; }
+.lista-imprimir li { border-bottom: 1px solid var(--borde-suave); }
+.lista-imprimir li:last-child { border-bottom: none; }
+.lista-imprimir label { display: grid; grid-template-columns: auto 92px 1fr; gap: 12px; align-items: start; padding: 10px 14px; cursor: pointer; }
+.lista-imprimir label:hover { background: var(--superficie-2); }
+.lista-imprimir input { accent-color: var(--azul); width: 18px; height: 18px; margin: 2px 0 0; }
+.lista-imprimir li:has(input:not(:checked)) .imp-textos { opacity: 0.45; }
+.imp-quien { font-size: 12.5px; color: var(--suave); font-weight: 600; padding-top: 2px; }
+.lista-imprimir li.paciente .imp-quien { color: var(--verde-oscuro); }
+.lista-imprimir li.profesional .imp-quien { color: var(--azul-oscuro); }
+.imp-textos { display: flex; flex-direction: column; gap: 2px; font-size: 14.5px; }
+.imp-textos b { font-weight: 600; }
+.imp-textos span { color: var(--suave); }
+.dialogo-imprimir .pie-dialogo { padding-top: 14px; }
+.hoja-conversacion { display: none; }
+
+/* Guía de la primera vez */
+.guia { position: fixed; inset: 0; z-index: 20; }
+.guia[hidden] { display: none; }
+.guia-foco { position: fixed; border-radius: 16px; box-shadow: 0 0 0 9999px rgb(34 48 61 / 0.5); transition: all 0.25s ease;
+  pointer-events: none; outline: 3px solid white; }
+.guia-globo { position: fixed; background: var(--texto); color: white; border-radius: 16px; padding: 16px 18px 14px;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.3); animation: aparece 0.2s ease-out; }
+.guia-globo b { display: block; font-size: 16px; margin-bottom: 4px; }
+.guia-globo p { margin: 0; font-size: 14.5px; line-height: 1.5; opacity: 0.92; }
+.guia-globo::after { content: ""; position: absolute; top: -7px; left: var(--flecha, 40px); width: 14px; height: 14px; margin-left: -7px;
+  background: var(--texto); transform: rotate(45deg); }
+.guia-globo.arriba::after { top: auto; bottom: -7px; }
+.guia-pie { display: flex; align-items: center; gap: 12px; margin-top: 14px; font-size: 13px; }
+.guia-pie .enlace { color: white; opacity: 0.8; padding: 0; }
+.guia-pie .enlace:hover { opacity: 1; background: none; text-decoration: underline; }
+.guia-pie #guia-paso { margin-left: auto; opacity: 0.7; }
+.guia-pie .boton { background: white; color: var(--azul-oscuro); padding: 7px 16px; }
+.guia-pie .boton:hover:not(:disabled) { background: var(--azul-claro); }
+
+/* ---- Alto contraste (menú «Aa») ---- */
+:root.contraste {
+  --fondo: #000; --fondo-alto: #000; --superficie: #000; --superficie-2: #121212;
+  --borde: #fff; --borde-suave: #8a8a8a; --texto: #fff; --suave: #e8e8e8; --tenue: #c4c4c4;
+  --azul: #ffd400; --azul-oscuro: #ffe35a; --azul-claro: #1c1c1c; --azul-borde: #fff;
+  --verde: #6fe3cf; --verde-oscuro: #9af0e2; --verde-claro: #0b1f1c; --verde-borde: #6fe3cf;
+  --aviso: #1c1c1c; --aviso-borde: #ffd400; --aviso-texto: #ffd400; --rojo: #ff8a80;
+  --sombra: none; --sombra-alta: 0 0 0 2px #fff;
+}
+.contraste body { background: #000; }
+.contraste .mensaje, .contraste .panel, .contraste .pasos li, .contraste .tarjeta-idioma { border-width: 2px; }
+.contraste .mensaje .traduccion, .contraste .grande-traduccion, .contraste .bienvenida-paciente { color: #ffd400; }
+.contraste .boton:not(.secundario):not(.icono), .contraste .genero .boton.activo, .contraste .temas button.activo,
+.contraste .microfono .circulo, .contraste .boton-parar, .contraste .lista-chips button:hover, .contraste .chips button:hover,
+.contraste .guia-pie .boton { color: #000; }
+.contraste .panel.paciente .boton.enviar, .contraste .panel.paciente .microfono .circulo { background: var(--verde); color: #000; }
+.contraste .microfono .circulo { box-shadow: 0 0 0 3px #fff; }
+.contraste .dato { background: #ffd400; color: #000; box-shadow: none; }
+.contraste .respuesta.r0, .contraste .respuesta.r1 { background: #000; border-color: #fff; }
+.contraste .respuesta.r0 .respuesta-texto { color: #7dff9a; } .contraste .respuesta.r1 .respuesta-texto { color: #ff8a80; }
+.contraste .marca-nombre strong { color: #ffd400; }
+.contraste .idioma-paciente select { background-image: none; padding-right: 12px; }
+.contraste .interruptor input[type="checkbox"] { background: #555; }
+.contraste .interruptor input[type="checkbox"]:checked { background: #ffd400; }
+.contraste .interruptor input[type="checkbox"]::after { background: #000; box-shadow: 0 0 0 1px #fff; }
+.contraste .guia-globo, .contraste .estado:not(.es-error) { background: #1c1c1c; border: 2px solid #fff; }
+.contraste .guia-globo::after { background: #1c1c1c; }
+
 /* ---- Pantalla grande (para que el paciente lea un mensaje de lejos) ---- */
 .grande {
   position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; cursor: zoom-out;
@@ -546,7 +656,8 @@ dialog form .pie-nota { margin-top: auto; padding-top: 18px; }
 /* ---- Impresión: solo el mensaje en grande, en blanco y negro ---- */
 @media print {
   @page { size: A4; margin: 18mm 18mm 16mm; }
-  body > *:not(#grande) { display: none !important; }
+  body > *:not(#grande):not(#hoja-conversacion) { display: none !important; }
+  body:not(.imprimiendo-conversacion) #hoja-conversacion { display: none !important; }
   .grande { position: static; display: flex !important; flex-direction: column; align-items: stretch; min-height: 255mm; background: white; color: black; padding: 0; }
   .grande-arriba, .grande-acciones { display: none !important; }
   .impreso-cabecera { display: flex; align-items: center; gap: 12px; padding-bottom: 10pt; border-bottom: 1px solid #bbb;
@@ -562,6 +673,19 @@ dialog form .pie-nota { margin-top: auto; padding-top: 18px; }
     border: 1.5pt solid #222; border-radius: 10pt; padding: 14pt 18pt; font-size: 12pt; color: #555; }
   .impreso-cita b { border-bottom: 1px solid #999; min-height: 14pt; }
   .impreso-pie { display: block; margin-top: auto; padding-top: 8pt; border-top: 1px solid #ddd; font-size: 9pt; color: #777; }
+
+  /* Imprimir la conversación (en vez de un solo mensaje) */
+  body.imprimiendo-conversacion #grande { display: none !important; }
+  body.imprimiendo-conversacion #hoja-conversacion { display: block !important; color: black; font-size: 11pt; }
+  .hoja-conversacion .impreso-cabecera { margin-bottom: 14pt; }
+  .hoja-conversacion table { width: 100%; border-collapse: collapse; }
+  .hoja-conversacion th { text-align: start; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: #666;
+    border-bottom: 1.5pt solid #333; padding: 4pt 6pt; }
+  .hoja-conversacion td { vertical-align: top; padding: 7pt 6pt; border-bottom: 1px solid #ddd; line-height: 1.4; }
+  .hoja-conversacion td:first-child { width: 22mm; font-size: 9pt; color: #666; white-space: nowrap; }
+  .hoja-conversacion td:nth-child(2), .hoja-conversacion td:nth-child(3) { width: 45%; }
+  .hoja-conversacion tr { break-inside: avoid; }
+  .hoja-conversacion .impreso-pie { margin-top: 18pt; }
 }
 
 /* ---- Pantallas medianas ---- */

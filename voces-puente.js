@@ -99,6 +99,11 @@ function quitarAudio() {
   }
 }
 
+/** ¿Está sonando ahora una voz de Puente? */
+export function sonando() {
+  return Boolean(audio && !audio.paused && !audio.ended);
+}
+
 export function parar() {
   turno++;
   quitarAudio();
