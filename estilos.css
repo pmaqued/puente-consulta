@@ -47,34 +47,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fondo: #151a21;
-    --fondo-alto: #18212c;
-    --superficie: #1d242e;
-    --superficie-2: #212935;
-    --borde: #2f3946;
-    --borde-suave: #29323e;
-    --texto: #eaeef2;
-    --suave: #a3adb8;
-    --tenue: #7c8692;
-    --azul: #6ea8e6;
-    --azul-oscuro: #8bbcef;
-    --azul-claro: #1d2d40;
-    --azul-borde: #2c4560;
-    --verde: #5cc2b3;
-    --verde-oscuro: #7dd3c6;
-    --verde-claro: #183432;
-    --verde-borde: #25504a;
-    --aviso: #33291c;
-    --aviso-borde: #5a4526;
-    --aviso-texto: #f0d2a6;
-    --rojo: #ef8a80;
-    --sombra: 0 1px 2px rgb(0 0 0 / 0.3);
-    --sombra-alta: 0 16px 40px rgb(0 0 0 / 0.45);
-    color-scheme: dark;
-  }
-}
+/* Siempre en claro, aunque el ordenador esté en modo oscuro: blanco y azul claro, como en sanidad. */
 
 * { box-sizing: border-box; }
 
@@ -162,7 +135,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .boton.redondo svg { width: 20px; height: 20px; }
 .enlace { font: inherit; font-size: 14px; font-weight: 600; background: none; border: none; color: var(--azul);
   cursor: pointer; padding: 2px 6px; border-radius: 6px; }
-.enlace:hover { background: var(--azul-claro); }
+.enlace:hover:not(:disabled) { background: var(--azul-claro); }
+.enlace:disabled { color: var(--suave); cursor: progress; }
 
 /* Grupos de la barra: control segmentado (Hombre/Mujer, A−/A+) */
 .genero, .tamano { display: flex; align-items: center; gap: 8px; }

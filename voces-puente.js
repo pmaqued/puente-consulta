@@ -70,26 +70,36 @@ export async function prepararVoz(voz, alProgresar = () => {}) {
 }
 
 let audio = null;
+let turno = 0; // cada petición nueva (o callar) invalida las anteriores que aún se están preparando
 
 /**
  * Dice un texto con una voz de Puente. Resuelve cuando empieza a sonar.
+ * Si mientras se prepara llega otra petición o se manda callar, esta ya no suena (antes se quedaban en
+ * cola y sonaban todas seguidas, como en bucle).
  * Lanza error si no se puede (la página entonces usa las voces del navegador).
  */
 export async function decir(texto, voz) {
-  parar();
+  const mio = ++turno;
+  quitarAudio();
   const sesion = await prepararVoz(voz);
   const wav = await sesion.predict(texto);
-  parar();
+  if (mio !== turno) return;
+  quitarAudio();
   audio = new Audio(URL.createObjectURL(wav));
   const actual = audio;
   actual.addEventListener("ended", () => URL.revokeObjectURL(actual.src), { once: true });
   await actual.play();
 }
 
-export function parar() {
+function quitarAudio() {
   if (audio) {
     audio.pause();
     URL.revokeObjectURL(audio.src);
     audio = null;
   }
+}
+
+export function parar() {
+  turno++;
+  quitarAudio();
 }

@@ -720,9 +720,21 @@ async function abrirAjustes() {
       const muestra = idioma === PROFESIONAL ? "Hola, esto es una prueba de voz."
         : (paciente.textos?.bienvenida ?? "Hola");
       probar.addEventListener("click", async () => {
-        probar.textContent = "Preparando…";
-        const problema = await leer(muestra, idioma.voz, ajustes.internetVoces, genero, ajustes.motorVoz);
-        probar.textContent = problema ? `✘ ${problema}` : "✔ Ha sonado (¿lo has oído?)";
+        if (probar.disabled) return;
+        probar.disabled = true; // una pulsación cada vez: si no, se encolan y suenan varias seguidas
+        try {
+          if (ajustes.motorVoz === "puente" && puente && !(await estaDescargada(puente))) {
+            probar.textContent = "Descargando la voz…";
+            await prepararVoz(puente, (p) => {
+              probar.textContent = `Descargando la voz… ${Math.round(p * 100)} %`;
+            }).catch(() => {}); // si falla, leer() lo dice y usa la del navegador
+          }
+          probar.textContent = "Preparando…";
+          const problema = await leer(muestra, idioma.voz, ajustes.internetVoces, genero, ajustes.motorVoz);
+          probar.textContent = problema ? `✘ ${problema}` : "✔ Ha sonado (¿lo has oído?)";
+        } finally {
+          probar.disabled = false;
+        }
       });
       li.append(" ", probar);
     }
