@@ -24,6 +24,7 @@
       <symbol id="i-mas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
       <symbol id="i-cerrar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
       <symbol id="i-info" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></symbol>
+      <symbol id="i-editar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></symbol>
       <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
     </defs>
   </svg>
@@ -74,6 +75,8 @@
     </div>
     <label class="menu-interruptor interruptor"><span>Alto contraste<small>Fondo negro y letra grande y clara</small></span>
       <input type="checkbox" id="alto-contraste" role="switch"></label>
+    <label class="menu-interruptor interruptor"><span>Comprobar la traducción<small>Bajo lo que usted dice, cómo vuelve al español</small></span>
+      <input type="checkbox" id="comprobar-vuelta" role="switch"></label>
     <label class="menu-interruptor interruptor"><span>Ver atajos de teclado<small>F1 paciente · F2 usted · F4 en grande · Esc parar</small></span>
       <input type="checkbox" id="ver-atajos" role="switch"></label>
   </div>
@@ -158,7 +161,7 @@
         </div>
         <div id="frases" class="frases" hidden></div>
         <div class="fila">
-          <textarea id="texto-profesional" rows="2" placeholder="Escriba aquí… (↩ envía, ⇧↩ nueva línea)"></textarea>
+          <textarea id="texto-profesional" rows="2" placeholder="Escriba aquí… (↩ envía · «entre comillas» no se traduce)"></textarea>
           <button class="boton enviar" data-lado="profesional">Enviar</button>
         </div>
       </div>
@@ -229,11 +232,12 @@
             <span class="nota">Voces: el español, la que elijas en «Aa» (hombre o mujer); el árabe, de hombre; el chino, de mujer.</span></span>
           <input type="checkbox" id="leer-profesional" role="switch"></label>
 
-        <p class="grupo-titulo">Servicios de internet <span class="grupo-nota">(desactivados por defecto)</span></p>
-        <label class="opcion interruptor"><span><b>Dictado por internet</b> <span class="sello nube">envía el audio</span>
-            <span class="nota">Si el navegador no puede dictar en el propio ordenador, el audio va a Google (Chrome) o
-              Microsoft (Edge). Son datos de salud: actívalo solo si tu centro lo permite. Sin esto, se puede escribir.</span></span>
-          <input type="checkbox" id="internet-dictado" role="switch"></label>
+        <p class="grupo-titulo">Servicios de internet</p>
+        <label class="opcion interruptor"><span><b>Dictado por internet, con permiso del paciente</b> <span class="sello nube">envía el audio</span>
+            <span class="nota">Si el navegador no puede dictar en el propio ordenador (el árabe y el chino, siempre), el audio
+              va a Google (Chrome) o Microsoft (Edge). Antes, la página pide permiso al paciente en su idioma, una vez por
+              conversación; si acepta, anótelo en la historia. Apagado: nunca se envía y se escribe.</span></span>
+          <input type="checkbox" id="dictado-permiso" role="switch"></label>
         <label class="opcion interruptor"><span><b>Voces de internet</b> <span class="sello nube">envía el texto</span>
             <span class="nota">Algunas voces del navegador (sobre todo en árabe y chino) solo existen en la nube.</span></span>
           <input type="checkbox" id="internet-voces" role="switch"></label>
@@ -273,6 +277,36 @@
         <em>Nueva conversación</em> o al cerrar la pestaña. Los ajustes y las frases se guardan en este navegador.</p>
 
       <div class="pie-dialogo"><button class="boton">Cerrar</button></div>
+    </form>
+  </dialog>
+
+  <!-- Permiso del paciente antes del dictado por internet -->
+  <dialog id="dialogo-permiso" class="dialogo-permiso" aria-labelledby="permiso-titulo">
+    <form method="dialog">
+      <div id="permiso-paciente" class="permiso-paciente">
+        <p id="permiso-texto" class="permiso-texto"></p>
+        <div class="permiso-botones">
+          <button class="boton permiso-si" value="si"><span id="permiso-si-nativo"></span><small>Sí, de acuerdo</small></button>
+          <button class="boton permiso-no" value="no"><span id="permiso-no-nativo"></span><small>No</small></button>
+        </div>
+        <button type="button" id="permiso-leer" class="enlace permiso-leer" lang="es" dir="ltr">
+          <svg class="icono-svg" aria-hidden="true"><use href="#i-altavoz"/></svg>Leérselo en voz alta</button>
+      </div>
+      <div class="permiso-profesional">
+        <h2 id="permiso-titulo">Antes de dictar, pida permiso al paciente</h2>
+        <p>El dictado en <span id="permiso-idioma"></span> solo funciona por internet: el audio de la conversación va a
+          <b id="permiso-servicio"></b> para convertirlo en texto. La traducción sigue haciéndose en este ordenador.
+          Enséñele o léale el texto de arriba. <b>No diga nombres ni datos que identifiquen al paciente.</b></p>
+        <details class="permiso-detalle"><summary>Qué le dice el texto, en español</summary>
+          <p id="permiso-espanol"></p></details>
+        <div class="permiso-historia">
+          <p><b>Si acepta, anótelo en la historia clínica:</b> <span id="permiso-nota"></span></p>
+          <button type="button" id="permiso-copiar" class="boton secundario">Copiar nota</button>
+        </div>
+        <p class="permiso-pie">Se pregunta una vez por conversación. Si no acepta, se escribe y se usan las respuestas
+          rápidas: no sale nada.
+          <button class="enlace" value="">Ahora no</button></p>
+      </div>
     </form>
   </dialog>
 

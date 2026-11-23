@@ -287,6 +287,12 @@ svg { width: 20px; height: 20px; flex: none; }
   margin: 0; line-height: 1.35; white-space: pre-wrap; cursor: zoom-in; color: var(--texto); }
 .mensaje .original { font-size: calc(15.5px * var(--escala)); color: var(--suave); margin: 10px 0 0; padding-top: 9px;
   border-top: 1px solid color-mix(in srgb, var(--suave) 18%, transparent); white-space: pre-wrap; }
+/* Traducción de vuelta al español, bajo lo que dice el profesional */
+.mensaje .vuelta { font-size: calc(14px * var(--escala)); color: var(--suave); margin: 6px 0 0; font-style: italic; }
+.mensaje .vuelta .vuelta-etiqueta { font-style: normal; font-weight: 600; }
+.mensaje .vuelta.igual .vuelta-etiqueta { color: var(--verde-oscuro); }
+/* Lo que va entre comillas: no se traduce */
+.mensaje .nombre { font-weight: 700; color: var(--texto); }
 .mensaje .pendiente { font-size: 18px; color: var(--suave); font-style: italic; margin: 4px 0; }
 .mensaje .pendiente::after { content: ""; display: inline-block; width: 14px; height: 14px; margin-left: 10px;
   vertical-align: -2px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent;
@@ -715,3 +721,32 @@ dialog form .pie-nota { margin-top: auto; padding-top: 18px; }
   .mensaje .traduccion { font-size: calc(24px * var(--escala)); }
   #nueva { padding: 9px 12px; }
 }
+
+/* Permiso del paciente antes del dictado por internet: arriba, en grande y en su idioma; abajo, para el profesional */
+.dialogo-permiso { width: min(760px, 94vw); }
+.dialogo-permiso form { height: auto; max-height: 92vh; padding: 0; }
+.permiso-paciente { background: var(--verde-claro); border-bottom: 1px solid var(--verde-borde); padding: 28px 32px 20px; text-align: start; }
+.permiso-texto { margin: 0 0 22px; font-size: 25px; line-height: 1.55; font-weight: 500; color: var(--texto); }
+.permiso-paciente[dir="rtl"] .permiso-texto { font-size: 28px; line-height: 1.7; }
+.permiso-botones { display: flex; gap: 14px; flex-wrap: wrap; }
+.permiso-botones .boton { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 180px;
+  padding: 14px 26px; border-radius: 16px; font-size: 24px; font-weight: 700; }
+.permiso-botones .boton small { font-size: 13px; font-weight: 500; opacity: 0.85; }
+.permiso-si { background: var(--verde); }
+.permiso-si:hover:not(:disabled) { background: var(--verde-oscuro); }
+.permiso-no { background: var(--superficie); color: var(--texto); border: 1.5px solid var(--borde); }
+.permiso-no:hover:not(:disabled) { background: var(--superficie-2); }
+.permiso-leer { margin-top: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.permiso-leer .icono-svg { width: 18px; height: 18px; }
+.permiso-profesional { padding: 18px 32px 22px; font-size: 15px; line-height: 1.5; }
+.permiso-profesional h2 { margin: 0 0 6px; font-family: var(--letra-titulos); font-size: 20px; font-weight: 650; color: var(--azul-oscuro); }
+.permiso-profesional p { margin: 0 0 10px; }
+.permiso-detalle { margin: 0 0 12px; color: var(--suave); }
+.permiso-detalle summary { cursor: pointer; font-weight: 600; }
+.permiso-detalle p { margin: 6px 0 0; }
+.permiso-historia { display: flex; gap: 14px; align-items: center; background: var(--aviso); border: 1px solid var(--aviso-borde);
+  border-radius: var(--radio-pequeno); padding: 12px 14px; margin-bottom: 10px; color: var(--aviso-texto); }
+.permiso-historia p { margin: 0; flex: 1; }
+.permiso-historia .boton { flex-shrink: 0; }
+.permiso-pie { color: var(--suave); font-size: 13.5px; }
+.permiso-pie .enlace { margin-inline-start: 6px; }

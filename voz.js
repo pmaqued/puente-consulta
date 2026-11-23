@@ -4,7 +4,7 @@
 // Microsoft. Algunos navegadores ya permiten hacerlo en el propio equipo (`processLocally`), pero no
 // en todos los idiomas. Por eso:
 //   - Si el dictado puede hacerse en el equipo, se usa siempre así.
-//   - Si no, solo se usa por internet cuando el profesional lo permite en Ajustes.
+//   - Si no, se usa por internet solo si está permitido en Ajustes y el paciente ha dado permiso (app.js).
 // Lo mismo con las voces: las que no son del sistema (`localService: false`) envían el texto fuera.
 
 const Reconocimiento = self.SpeechRecognition || self.webkitSpeechRecognition;

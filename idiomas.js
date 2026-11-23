@@ -110,3 +110,45 @@ export const FRASES_POR_DEFECTO = [
 export function buscarIdioma(id) {
   return IDIOMAS.find((i) => i.id === id) ?? IDIOMAS[0];
 }
+
+// Permiso del paciente para el dictado por internet (como cuando el médico usa el traductor del móvil:
+// se le pregunta y, si acepta, se anota en la historia). Escrito a mano en los idiomas principales;
+// en los demás se traduce en el momento con el traductor del equipo. {S} = Google o Microsoft.
+export const PERMISO_ES = {
+  texto: "Para entender lo que se dice, este ordenador envía las voces a {S}, que las convierte en texto. " +
+    "No diga su nombre ni datos personales. ¿Está de acuerdo? Si no, puede escribir o tocar las respuestas.",
+  si: "Sí, estoy de acuerdo",
+  no: "No",
+};
+export const PERMISO = {
+  ar: {
+    texto: "لفهم ما يُقال، يرسل هذا الحاسوب الأصوات إلى {S} لتحويلها إلى نص. لا تذكر اسمك ولا أي معلومات شخصية. " +
+      "هل توافق؟ إذا لم توافق، يمكنك الكتابة أو الضغط على الأجوبة.",
+    si: "نعم، أوافق",
+    no: "لا",
+  },
+  zh: {
+    texto: "为了听懂对话，这台电脑会把说话的声音发送给 {S}，转换成文字。请不要说您的姓名或个人信息。您同意吗？" +
+      "如果不同意，您可以打字或点击下面的回答。",
+    si: "同意",
+    no: "不同意",
+  },
+  "zh-Hant": {
+    texto: "為了聽懂對話，這台電腦會把說話的聲音傳送給 {S}，轉換成文字。請不要說您的姓名或個人資料。您同意嗎？" +
+      "如果不同意，您可以打字或點選下面的回答。",
+    si: "同意",
+    no: "不同意",
+  },
+  en: {
+    texto: "To understand what is said, this computer sends the voices to {S}, which turns them into text. " +
+      "Please do not say your name or any personal details. Do you agree? If not, you can type or tap the answers.",
+    si: "Yes, I agree",
+    no: "No",
+  },
+  fr: {
+    texto: "Pour comprendre ce qui est dit, cet ordinateur envoie les voix à {S}, qui les transforme en texte. " +
+      "Ne dites pas votre nom ni de données personnelles. Êtes-vous d’accord ? Sinon, vous pouvez écrire ou toucher les réponses.",
+    si: "Oui, d’accord",
+    no: "Non",
+  },
+};

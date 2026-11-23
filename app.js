@@ -1,7 +1,8 @@
 // Puente Consulta: conversación cara a cara traducida (profesional en español ↔ paciente).
-import { IDIOMAS, PROFESIONAL, TEXTOS_BASE, FRASES_POR_DEFECTO, buscarIdioma, RESPUESTAS, RESPUESTAS_ES, TEMAS, temaDe }
-  from "./idiomas.js";
-import { hayTraductor, esModoPrueba, disponibilidad, preparar, traducir } from "./traductor.js";
+import { IDIOMAS, PROFESIONAL, TEXTOS_BASE, FRASES_POR_DEFECTO, buscarIdioma, RESPUESTAS, RESPUESTAS_ES, TEMAS, temaDe,
+  PERMISO, PERMISO_ES } from "./idiomas.js";
+import { hayTraductor, esModoPrueba, disponibilidad, preparar, traducir, traducirProtegiendo, partesProtegidas }
+  from "./traductor.js";
 import { hayDictado, modoDictado, instalarDictado, dictar, vozPara, generoDe, leer, callar, estaSonando } from "./voz.js";
 import { detectarIdioma } from "./detector.js";
 import { vozPuente, estaDescargada, prepararVoz } from "./voces-puente.js";
@@ -20,13 +21,16 @@ const AJUSTES_POR_DEFECTO = {
   leerPaciente: true,
   leerProfesional: true,
   vozProfesional: "hombre", // voz con la que se lee el español: "hombre" | "mujer"
-  internetDictado: false,
+  // Dictado por internet (cuando el navegador no puede dictar en el equipo): se permite, pero antes la página
+  // pide permiso al paciente en su idioma, una vez por conversación. Apagado = nunca.
+  dictadoConPermiso: true,
   internetVoces: false,
   motorVoz: "puente", // "puente" (voces Piper en la página) | "navegador"
   avisoOculto: false,
   imprimirCita: false, // al imprimir, añadir el recuadro Día / Hora / Consulta
   altoContraste: false, // fondo negro y letra blanca/amarilla, para quien ve poco
   verAtajos: true, // enseñar las teclas F1 / F2 junto a los micrófonos
+  comprobarVuelta: true, // bajo lo que dice el profesional, cómo vuelve al español la traducción
   guiaVista: false, // la guía de la primera vez ya se ha visto
   escala: 1, // tamaño de la letra de la conversación (0.8 – 1.6)
   frases: FRASES_POR_DEFECTO,
@@ -250,6 +254,7 @@ async function comprobarIdiomaEscrito(texto) {
 // ---------- Idioma del paciente ----------
 
 function cambiarIdioma(id) {
+  if (buscarIdioma(id).id !== paciente.id) permiso = null; // otro idioma: otro paciente, se vuelve a preguntar
   paciente = buscarIdioma(id);
   ajustes.idioma = id;
   guardarAjustes();
@@ -624,8 +629,9 @@ async function enviar(lado, textoDado, dictado = false) {
   const burbuja = crearBurbuja(lado, texto, origen);
   if (!deProfesional) comprobarIdiomaEscrito(texto);
   try {
-    const traduccion = await traducir(texto, origen.traduccion, destino.traduccion);
+    const traduccion = await traducirProtegiendo(texto, origen.traduccion, destino.traduccion);
     completarBurbuja(burbuja, traduccion, destino, texto, origen);
+    if (deProfesional && ajustes.comprobarVuelta) comprobarVuelta(burbuja, traduccion, texto, destino);
     const debeLeer = dictado || (deProfesional ? ajustes.leerPaciente : ajustes.leerProfesional);
     if (debeLeer) leerYAvisar(traduccion, destino, burbuja);
   } catch (e) {
@@ -636,6 +642,7 @@ async function enviar(lado, textoDado, dictado = false) {
 
 function crearBurbuja(lado, texto, origen) {
   $("#vacia")?.remove();
+  $(".boton-corregir")?.remove(); // solo se corrige el último mensaje
   $("#elegir-idioma").hidden = true;
   if (!$("#preparacion").hidden) $("#conversacion").prepend($("#preparacion"));
   const art = document.createElement("article");
@@ -673,7 +680,8 @@ function crearBurbuja(lado, texto, origen) {
   return art;
 }
 
-function completarBurbuja(art, traduccion, destino, original, origen) {
+/** `corregible`: si lleva el botón Corregir (no en las respuestas rápidas, que ya vienen escritas). */
+function completarBurbuja(art, traduccion, destino, original, origen, corregible = true) {
   const p = document.createElement("p");
   p.className = "traduccion";
   resaltarDatos(p, traduccion);
@@ -685,7 +693,7 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
   const haciaEspanol = destino === PROFESIONAL;
   mensajes.push({
     art, hora: art.dataset.hora, lado: art.classList.contains("paciente") ? "paciente" : "profesional",
-    espanol: haciaEspanol ? traduccion : original, otro: haciaEspanol ? original : traduccion,
+    espanol: haciaEspanol ? traduccion : original, otro: haciaEspanol ? original : traduccion, verGrande,
   });
   $("#imprimir-conversacion").disabled = false;
   p.addEventListener("click", verGrande);
@@ -698,6 +706,12 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
     acciones.append(botonMensaje("i-altavoz", "Repetir", "Leer otra vez en voz alta",
       () => leerYAvisar(traduccion, destino, art)));
   }
+  if (corregible) {
+    const lado = art.classList.contains("paciente") ? "paciente" : "profesional";
+    const b = botonMensaje("i-editar", "Corregir", "Cambiar el texto y volver a traducirlo", () => corregir(art, lado, original));
+    b.classList.add("boton-corregir");
+    acciones.append(b);
+  }
   art.append(acciones);
   art.scrollIntoView({ behavior: "smooth", block: "end" });
 }
@@ -707,13 +721,15 @@ function completarBurbuja(art, traduccion, destino, original, origen) {
  * en la consulta y lo que más se equivoca al traducir. Así se comprueba de un vistazo en los dos idiomas.
  */
 const DATOS = /[0-9٠-٩۰-۹]+(?:[.,:/\-][0-9٠-٩۰-۹]+)*(?: [0-9٠-٩۰-۹]{2,3}(?![0-9٠-٩۰-۹]))*/g;
+// …y lo que va entre comillas (no se traduce: nombres, calles, medicamentos), marcado aparte.
+const DATOS_Y_NOMBRES = new RegExp(`«[^»]+»|“[^”]+”|"[^"]+"|${DATOS.source}`, "g");
 function resaltarDatos(el, texto) {
   el.replaceChildren();
   let desde = 0;
-  for (const m of texto.matchAll(DATOS)) {
+  for (const m of texto.matchAll(DATOS_Y_NOMBRES)) {
     if (m.index > desde) el.append(texto.slice(desde, m.index));
     const marca = document.createElement("span");
-    marca.className = "dato";
+    marca.className = /^[«“"]/.test(m[0]) ? "nombre" : "dato";
     marca.textContent = m[0];
     el.append(marca);
     desde = m.index + m[0].length;
@@ -766,7 +782,58 @@ function quitarLectura() {
   for (const m of document.querySelectorAll(".mensaje.leyendo")) m.classList.remove("leyendo");
 }
 
+// ---------- Comprobar la traducción y corregir ----------
+
+const normalizar = (t) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * Bajo lo que dice el profesional, cómo vuelve al español la traducción (con el mismo traductor, en el equipo).
+ * Si vuelve casi igual, solo una marca; si no, el texto, para ver si se ha perdido el sentido.
+ */
+async function comprobarVuelta(art, traduccion, original, idioma) {
+  const p = document.createElement("p");
+  p.className = "vuelta";
+  p.textContent = "Comprobando la traducción…";
+  art.querySelector(".original").after(p);
+  try {
+    const vuelta = await traducirProtegiendo(traduccion, idioma.traduccion, PROFESIONAL.traduccion);
+    const etiqueta = document.createElement("span");
+    etiqueta.className = "vuelta-etiqueta";
+    if (normalizar(vuelta) === normalizar(original)) {
+      p.classList.add("igual");
+      etiqueta.textContent = "✓ Vuelve igual al español";
+      p.replaceChildren(etiqueta);
+    } else {
+      etiqueta.textContent = "Así vuelve al español:";
+      p.replaceChildren(etiqueta, " ", vuelta);
+    }
+    p.title = "Traducción de vuelta, para comprobar que se entiende lo mismo";
+    // La línea nueva alarga el mensaje: si es el último, que siga viéndose entero.
+    if (art === $("#conversacion").lastElementChild) art.scrollIntoView({ behavior: "smooth", block: "end" });
+  } catch (e) {
+    console.warn("No se pudo comprobar la traducción:", e);
+    p.remove();
+  }
+}
+
+/** Quita el último mensaje y devuelve su texto a su caja para cambiarlo y enviarlo otra vez. */
+function corregir(art, lado, original) {
+  callar();
+  quitarLectura();
+  detenerDictado();
+  const i = mensajes.findIndex((m) => m.art === art);
+  if (i >= 0) mensajes.splice(i, 1);
+  art.remove();
+  ultimoVerGrande = mensajes.at(-1)?.verGrande ?? null;
+  $("#imprimir-conversacion").disabled = !mensajes.length;
+  const area = $(`#texto-${lado}`);
+  area.value = original;
+  area.focus();
+  area.setSelectionRange(original.length, original.length);
+}
+
 function nuevaConversacion() {
+  permiso = null;
   detenerDictado();
   callar();
   quitarLectura();
@@ -831,7 +898,7 @@ function pintarRespuestas() {
 function responderRapido(texto, enEspanol) {
   detenerDictado();
   const burbuja = crearBurbuja("paciente", texto, paciente);
-  completarBurbuja(burbuja, enEspanol, PROFESIONAL, texto, paciente);
+  completarBurbuja(burbuja, enEspanol, PROFESIONAL, texto, paciente, false);
   if (ajustes.leerProfesional) leerYAvisar(enEspanol, PROFESIONAL, burbuja);
 }
 
@@ -883,7 +950,8 @@ function prepararVista() {
     document.documentElement.classList.toggle("contraste", ajustes.altoContraste);
     document.documentElement.classList.toggle("con-atajos", ajustes.verAtajos);
   };
-  for (const [sel, clave] of [["#alto-contraste", "altoContraste"], ["#ver-atajos", "verAtajos"]]) {
+  for (const [sel, clave] of [["#alto-contraste", "altoContraste"], ["#ver-atajos", "verAtajos"],
+    ["#comprobar-vuelta", "comprobarVuelta"]]) {
     const c = $(sel);
     c.checked = ajustes[clave];
     c.addEventListener("change", () => {
@@ -900,7 +968,7 @@ function prepararVista() {
 
 function prepararAtajos() {
   document.addEventListener("keydown", (e) => {
-    if (guiaActiva || $("#ajustes").open || $("#dialogo-imprimir").open) return;
+    if (guiaActiva || $("#ajustes").open || $("#dialogo-imprimir").open || $("#dialogo-permiso").open) return;
     if (e.key === "F1" || e.key === "F2") {
       e.preventDefault(); // F1 abre la ayuda del navegador
       if (!$("#grande").hidden) return;
@@ -1077,6 +1145,74 @@ function prepararGuia() {
 }
 let iniciarGuia = () => {};
 
+// ---------- Permiso del paciente para el dictado por internet ----------
+// Igual que cuando el médico usa el traductor del móvil: se pregunta al paciente y, si acepta, se anota
+// en la historia. Se pregunta una vez por conversación (Nueva conversación o cambiar de idioma lo borra).
+
+let permiso = null; // null: sin preguntar en esta conversación · true: aceptado · false: no aceptado
+
+/** A quién va el audio: Edge usa Microsoft; Chrome, Google. */
+const servicioDictado = () => (/\bEdg\//.test(navigator.userAgent) ? "Microsoft" : "Google");
+
+const notaHistoria = () => "Se informa al paciente y acepta el uso de traducción automática con dictado por voz " +
+  `(Puente Consulta; el audio lo convierte en texto ${servicioDictado()}). Sin datos identificativos.`;
+
+/** Textos del permiso en el idioma del paciente: escritos a mano o traducidos en el equipo. */
+async function textosPermiso() {
+  const S = servicioDictado();
+  let t = PERMISO[paciente.traduccion];
+  if (!t) {
+    try {
+      t = {};
+      for (const [clave, texto] of Object.entries(PERMISO_ES)) {
+        t[clave] = await traducir(texto.replace("{S}", "«" + S + "»"), PROFESIONAL.traduccion, paciente.traduccion);
+      }
+    } catch {
+      t = PERMISO_ES;
+    }
+  }
+  return { texto: t.texto.replaceAll("{S}", S).replaceAll("«" + S + "»", S), si: t.si, no: t.no };
+}
+
+/** Enseña el permiso en grande al paciente. Devuelve true (sí), false (no) o null (se cierra sin responder). */
+async function pedirPermiso() {
+  const dialogo = $("#dialogo-permiso");
+  const t = await textosPermiso();
+  const S = servicioDictado();
+  const lado = $("#permiso-paciente");
+  lado.lang = paciente.traduccion;
+  lado.dir = paciente.dir;
+  $("#permiso-texto").textContent = t.texto;
+  $("#permiso-si-nativo").textContent = t.si;
+  $("#permiso-no-nativo").textContent = t.no;
+  $("#permiso-servicio").textContent = S;
+  $("#permiso-idioma").textContent = enMinuscula(paciente.nombre);
+  $("#permiso-nota").textContent = notaHistoria();
+  $("#permiso-espanol").textContent = PERMISO_ES.texto.replace("{S}", S);
+  dialogo.returnValue = "";
+  dialogo.showModal();
+  $("#permiso-leer").onclick = () => leerYAvisar(t.texto, paciente);
+  $("#permiso-copiar").onclick = async () => {
+    const b = $("#permiso-copiar");
+    try {
+      await navigator.clipboard.writeText(notaHistoria());
+      b.textContent = "Copiada";
+    } catch {
+      b.textContent = "No se pudo copiar";
+    }
+    setTimeout(() => { b.textContent = "Copiar nota"; }, 3000);
+  };
+  const respuesta = await new Promise((resolver) => {
+    dialogo.addEventListener("close", () => resolver(dialogo.returnValue), { once: true });
+  });
+  callar();
+  if (respuesta === "si") {
+    mostrarEstado("El paciente ha dado permiso. Recuerde anotarlo en la historia clínica.");
+    return true;
+  }
+  return respuesta === "no" ? false : null;
+}
+
 // ---------- Dictado ----------
 
 const modos = new Map(); // idioma de voz -> modo ("local", "descargable", "internet", "no")
@@ -1113,10 +1249,18 @@ async function alternarDictado(lado) {
     }
   }
   if (modo === "no") return;
-  if (modo === "internet" && !ajustes.internetDictado) {
-    mostrarEstado(`El dictado en ${enMinuscula(idioma.nombre)} solo funciona por internet (envía el audio fuera). ` +
-      "Puedes escribir, o permitirlo en Ajustes.", { error: true, boton: ["Ajustes", abrirAjustes] });
+  if (modo === "internet" && !ajustes.dictadoConPermiso) {
+    mostrarEstado(`El dictado en ${enMinuscula(idioma.nombre)} solo funciona por internet (envía el audio fuera), ` +
+      "y está apagado en Ajustes. Puedes escribir.", { error: true, boton: ["Ajustes", abrirAjustes] });
     return;
+  }
+  if (modo === "internet" && permiso !== true) {
+    if (permiso === null) permiso = await pedirPermiso();
+    if (permiso === false) {
+      mostrarEstado("El paciente no ha dado permiso para el dictado por internet. Se puede escribir y usar las " +
+        "respuestas rápidas.", { error: true, boton: ["Preguntar otra vez", () => { permiso = null; alternarDictado(lado); }] });
+    }
+    if (permiso !== true) return;
   }
 
   const area = $(`#texto-${lado}`);
@@ -1248,7 +1392,7 @@ function prepararAjustes() {
   const casillas = {
     "#leer-paciente": "leerPaciente",
     "#leer-profesional": "leerProfesional",
-    "#internet-dictado": "internetDictado",
+    "#dictado-permiso": "dictadoConPermiso",
     "#internet-voces": "internetVoces",
   };
   for (const [sel, clave] of Object.entries(casillas)) {
@@ -1343,8 +1487,9 @@ async function abrirAjustes(pestana = "voz") {
       const [estado, texto] = {
         local: ["ok", "en este equipo"],
         descargable: ["ok", "en este equipo (se descarga al usarlo)"],
-        internet: ajustes.internetDictado ? ["med", "por internet (permitido): el audio sale del equipo"]
-          : ["med", "solo por internet, y está desactivado: se puede escribir"],
+        internet: ajustes.dictadoConPermiso
+          ? ["med", "por internet, con permiso del paciente: el audio sale del equipo"]
+          : ["med", "solo por internet, y está apagado: se puede escribir"],
         no: ["mal", "no disponible: se puede escribir"],
       }[modo];
       fila(estado, `Dictado en ${enMinuscula(idioma.nombre)}`, texto);

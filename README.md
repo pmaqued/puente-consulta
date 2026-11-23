@@ -31,6 +31,10 @@ centro de salud (pacientes que hablan sobre todo árabe o chino). Sin instalar n
 - **Funciona sin conexión** una vez abierta y con los idiomas descargados, y se puede **instalar como app**
   (Chrome/Edge: menú ⋮ › *Instalar Puente Consulta*): se abre en su propia ventana, con su icono.
 - **Frases rápidas** para el profesional (saludo, tarjeta sanitaria, «Túmbese en la camilla», nueva cita…). Se editan en Ajustes.
+- **Comprobar la traducción:** bajo lo que dice el profesional sale cómo vuelve al español (✓ si vuelve igual).
+  Se apaga en el menú «Aa».
+- **Corregir:** el último mensaje se puede quitar y volver a enviar cambiado.
+- **Lo que va entre «comillas» no se traduce** (nombres, calles, medicamentos): llega tal cual al paciente.
 - **Nueva conversación** lo borra todo. La conversación **no se guarda en ningún sitio**: solo vive en la
   pestaña. Los ajustes y las frases sí se guardan en el navegador.
 
@@ -39,7 +43,7 @@ centro de salud (pacientes que hablan sobre todo árabe o chino). Sin instalar n
 | Pieza | Dónde se procesa |
 |---|---|
 | Traducción | **En el propio ordenador** (traductor integrado de Chrome/Edge). No sale nada. |
-| Dictado por voz | En el ordenador si el navegador lo permite para ese idioma. Si no, **envía el audio a Google (Chrome) o Microsoft (Edge)**: por eso viene **desactivado** y hay que permitirlo en Ajustes. |
+| Dictado por voz | En el ordenador si el navegador lo permite para ese idioma. Si no (árabe y chino, siempre), **envía el audio a Google (Chrome) o Microsoft (Edge)**: antes, la página **pide permiso al paciente en su idioma** (una vez por conversación) y da la nota para la historia. Se puede apagar en Ajustes. |
 | Lectura en voz alta | **Voces de Puente:** en el propio ordenador (la primera vez se descargan los archivos de la voz desde Hugging Face y jsDelivr, sin enviar ningún dato). **Voces del navegador:** las del sistema, en el ordenador; las «de internet» (como las «Natural» de Edge) envían el texto fuera y solo se usan si se permiten en Ajustes. |
 
 En *Ajustes › Este navegador* se ve qué hay disponible en cada idioma.

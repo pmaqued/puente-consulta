@@ -72,3 +72,45 @@ export async function traducir(texto, origen, destino) {
   const traductor = await preparar(origen, destino);
   return traductor.translate(texto);
 }
+
+// ---- Texto protegido: lo que va entre comillas no se traduce ----
+// Sirve para nombres propios, calles, medicamentos… («Pablo» salía como «بول»). Lo que va entre «», “” o ""
+// se cambia por una marca [1] que el traductor deja tal cual (probado con el de Chrome en árabe y chino; otras
+// marcas como ⟦1⟧ o «1» las estropea), y después se vuelve a poner entre « ».
+// Si el traductor estropea alguna marca, se traduce el texto entero de la forma normal.
+
+const COMILLAS = /«([^»]+)»|“([^”]+)”|"([^"]+)"/g;
+const MARCA = /\[\s*([0-9٠-٩۰-۹]+)\s*\]/g;
+
+/** "١٢" o "۱۲" → 12 (el traductor puede devolver las cifras en árabe). */
+function aNumero(cifras) {
+  return Number(cifras.replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x660).replace(/[۰-۹]/g, (d) => d.charCodeAt(0) - 0x6f0));
+}
+
+/** Lo que va entre comillas en un texto (para resaltarlo). */
+export function partesProtegidas(texto) {
+  return [...texto.matchAll(COMILLAS)].map((m) => m[1] ?? m[2] ?? m[3]);
+}
+
+export async function traducirProtegiendo(texto, origen, destino) {
+  const protegidos = [];
+  const marcado = texto.replace(COMILLAS, (_, a, b, c) => {
+    protegidos.push(a ?? b ?? c);
+    return `[${protegidos.length}]`;
+  });
+  // Si el texto ya trae algo como [1], las marcas se confundirían: traducción normal.
+  if (!protegidos.length || origen === destino || MARCA.test(texto.replace(COMILLAS, ""))) {
+    MARCA.lastIndex = 0;
+    return traducir(texto, origen, destino);
+  }
+  const traducido = await traducir(marcado, origen, destino);
+  const vistos = new Set();
+  const final = traducido.replace(MARCA, (marca, cifras) => {
+    const i = aNumero(cifras) - 1;
+    if (protegidos[i] === undefined) return marca;
+    vistos.add(i);
+    return `«${protegidos[i]}»`;
+  });
+  if (vistos.size === protegidos.length) return final;
+  return traducir(texto, origen, destino);
+}
